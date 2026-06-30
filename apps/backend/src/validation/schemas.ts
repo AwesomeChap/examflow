@@ -1,5 +1,22 @@
 import { z } from "zod";
 
+// ---------- Auth ----------
+
+// Accepts `identifier` (email or matriculation number); `email` is kept as a
+// backward-compatible alias.
+export const loginSchema = z
+  .object({
+    identifier: z.string().trim().min(1).optional(),
+    email: z.string().trim().min(1).optional(),
+    password: z.string().min(1),
+  })
+  .refine((data) => Boolean(data.identifier ?? data.email), {
+    message: "identifier (email or matriculation number) is required",
+    path: ["identifier"],
+  });
+
+export type LoginInput = z.infer<typeof loginSchema>;
+
 // ---------- Exam ----------
 
 export const examCreateSchema = z.object({

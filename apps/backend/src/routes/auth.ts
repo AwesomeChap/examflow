@@ -3,7 +3,9 @@ import type { CookieOptions, Request, Response } from "express";
 import { signAuthToken, verifyPassword } from "../lib/auth.js";
 import { env } from "../lib/env.js";
 import { prisma } from "../lib/prisma.js";
+import { parseOr400 } from "../lib/validation.js";
 import { requireAuth } from "../middleware/auth.js";
+import { loginSchema } from "../validation/schemas.js";
 import { getCurrentUser } from "./me.js";
 
 const ONE_DAY_MS = 1000 * 60 * 60 * 24;
@@ -21,24 +23,28 @@ function cookieOptions(): CookieOptions {
 export const authRouter = Router();
 
 authRouter.post("/login", async (req: Request, res: Response) => {
-  const { email, password } = req.body ?? {};
+  const data = parseOr400(loginSchema, req.body, res);
+  if (!data) return;
 
-  if (typeof email !== "string" || typeof password !== "string") {
-    res.status(400).json({ error: "Email and password are required" });
-    return;
-  }
+  const identifier = (data.identifier ?? data.email)!.trim();
 
-  const user = await prisma.user.findUnique({
-    where: { email: email.toLowerCase().trim() },
+  // Match either the email or the matriculation number (case-insensitive).
+  const user = await prisma.user.findFirst({
+    where: {
+      OR: [
+        { email: { equals: identifier, mode: "insensitive" } },
+        { matriculationNumber: { equals: identifier, mode: "insensitive" } },
+      ],
+    },
   });
 
-  // Login is restricted to staff accounts (admin/teacher) with a password set.
-  if (!user || !user.passwordHash || user.role === "student") {
+  // Any account with a password may log in (admin, teacher, or student).
+  if (!user || !user.passwordHash) {
     res.status(401).json({ error: "Invalid credentials" });
     return;
   }
 
-  const passwordValid = await verifyPassword(password, user.passwordHash);
+  const passwordValid = await verifyPassword(data.password, user.passwordHash);
   if (!passwordValid) {
     res.status(401).json({ error: "Invalid credentials" });
     return;
@@ -57,6 +63,7 @@ authRouter.post("/login", async (req: Request, res: Response) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      matriculationNumber: user.matriculationNumber,
     },
   });
 });
