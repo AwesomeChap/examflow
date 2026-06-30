@@ -70,6 +70,8 @@ let studentFixtures: Student[] = [];
 const assignmentsByExam = new Map<string, Set<string>>();
 /** In-progress or submitted attempts keyed by `userId:examId`. */
 const attemptsByKey = new Map<string, Attempt>();
+/** When set, overrides attempt deadline offset (ms) for timer/autosubmit tests. */
+let testAttemptDurationMs: number | null = null;
 let idCounter = 0;
 
 function nextId(prefix: string): string {
@@ -106,6 +108,11 @@ export function seedStudentExam(
   examFixtures = [exam, ...examFixtures.filter((e) => e.id !== exam.id)];
   seedQuestions(exam.id, questions);
   seedAssignments(exam.id, [studentId]);
+}
+
+/** Override how long new attempts stay open in MSW (for timer/autosubmit tests). */
+export function setTestAttemptDurationMs(ms: number | null) {
+  testAttemptDurationMs = ms;
 }
 
 function gradeAttempt(examId: string, attempt: Attempt): AttemptResult {
@@ -188,6 +195,7 @@ export function resetSession() {
   studentFixtures = [];
   assignmentsByExam.clear();
   attemptsByKey.clear();
+  testAttemptDurationMs = null;
   idCounter = 0;
   capturedRequests.questionCreate.length = 0;
   for (const key of Object.keys(requestCredentials)) {
@@ -523,9 +531,8 @@ export const handlers = [
     }
 
     const startedAt = new Date().toISOString();
-    const deadline = new Date(
-      Date.now() + exam.durationMin * 60_000,
-    ).toISOString();
+    const durationMs = testAttemptDurationMs ?? exam.durationMin * 60_000;
+    const deadline = new Date(Date.now() + durationMs).toISOString();
     const attempt: Attempt = {
       id: nextId("att"),
       examId,
@@ -533,7 +540,7 @@ export const handlers = [
       deadline,
       submittedAt: null,
       score: null,
-      remainingMs: exam.durationMin * 60_000,
+      remainingMs: durationMs,
       answers: [],
     };
     attemptsByKey.set(key, attempt);

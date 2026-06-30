@@ -1,8 +1,14 @@
 import { screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Question } from "../src/types/question";
 import { renderApp } from "./render";
-import { TEST_USERS, makeExam, seedSession, seedStudentExam } from "./server";
+import {
+  TEST_USERS,
+  makeExam,
+  seedSession,
+  seedStudentExam,
+  setTestAttemptDurationMs,
+} from "./server";
 
 function toPublic(role: "admin" | "teacher" | "student") {
   const { password: _password, ...user } = TEST_USERS[role];
@@ -34,58 +40,143 @@ function questions(): Question[] {
   ];
 }
 
-describe("student exam taking", () => {
-  it("starts an exam with timer and question progress", async () => {
-    seedSession(toPublic("student"));
-    seedStudentExam(
-      makeExam({ id: "se1", title: "Live Exam", createdById: TEST_USERS.teacher.id }),
-      questions(),
-    );
+function seedLiveExam(durationMin = 60) {
+  seedSession(toPublic("student"));
+  seedStudentExam(
+    makeExam({
+      id: "se1",
+      title: "Live Exam",
+      durationMin,
+      createdById: TEST_USERS.teacher.id,
+    }),
+    questions(),
+  );
+}
+
+describe("student exam flow", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  describe("timer", () => {
+    it("starts at the full exam duration", async () => {
+      seedLiveExam(45);
+      renderApp("/exam/se1");
+
+      const timer = await screen.findByRole("timer", { name: /time remaining/i });
+      expect(timer).not.toHaveTextContent("00:00");
+      const [mins] = (timer.textContent ?? "00:00").split(":").map(Number);
+      expect(mins).toBeGreaterThanOrEqual(44);
+      expect(mins).toBeLessThanOrEqual(45);
+    });
+
+    it("counts down as time passes", async () => {
+      setTestAttemptDurationMs(5_000);
+      seedLiveExam(60);
+      renderApp("/exam/se1");
+
+      const timer = await screen.findByRole("timer", { name: /time remaining/i });
+      expect(timer.textContent).toMatch(/^00:0[4-5]$/);
+
+      await waitFor(
+        () => {
+          const [mins, secs] = (timer.textContent ?? "").split(":").map(Number);
+          expect(mins).toBe(0);
+          expect(secs).toBeLessThanOrEqual(3);
+        },
+        { timeout: 3_000 },
+      );
+    });
+  });
+
+  describe("answer persistence during navigation", () => {
+    it("keeps MCQ and true/false selections when moving prev/next", async () => {
+      seedLiveExam();
+      const { user } = renderApp("/exam/se1");
+
+      await screen.findByText("Pick four");
+      await user.click(screen.getByRole("radio", { name: "4" }));
+
+      await user.click(screen.getByRole("button", { name: /next/i }));
+      await screen.findByText("Sky is blue");
+      await user.click(screen.getByRole("radio", { name: "true" }));
+
+      await user.click(screen.getByRole("button", { name: /previous/i }));
+      await screen.findByText("Pick four");
+      expect(screen.getByRole("radio", { name: "4" })).toBeChecked();
+      expect(screen.getByRole("radio", { name: "3" })).not.toBeChecked();
+
+      await user.click(screen.getByRole("button", { name: /next/i }));
+      await screen.findByText("Sky is blue");
+      expect(screen.getByRole("radio", { name: "true" })).toBeChecked();
+      expect(screen.getByText(/2\/2 attempted/i)).toBeInTheDocument();
+    });
+  });
+
+  describe("manual submit", () => {
+    it("redirects to the result screen with a score summary", async () => {
+      seedLiveExam();
+      const { user } = renderApp("/exam/se1");
+
+      await screen.findByText("Pick four");
+      await user.click(screen.getByRole("radio", { name: "4" }));
+
+      vi.spyOn(window, "confirm").mockReturnValue(true);
+      await user.click(screen.getByRole("button", { name: /submit exam/i }));
+
+      expect(await screen.findByRole("heading", { name: "Live Exam" })).toBeInTheDocument();
+      expect(screen.getByText(/back to results/i)).toBeInTheDocument();
+      expect(screen.getByText(/breakdown/i)).toBeInTheDocument();
+      expect(screen.getByText(/your answer:/i)).toBeInTheDocument();
+      expect(screen.queryByText(/time's up — exam submitted/i)).not.toBeInTheDocument();
+    });
+
+    it("shows a success toast after manual submit", async () => {
+      seedLiveExam();
+      const { user } = renderApp("/exam/se1");
+
+      await screen.findByText("Pick four");
+      vi.spyOn(window, "confirm").mockReturnValue(true);
+      await user.click(screen.getByRole("button", { name: /submit exam/i }));
+
+      expect(await screen.findByText("Exam submitted.")).toBeInTheDocument();
+    });
+  });
+
+  describe("autosubmit", () => {
+    it("submits and redirects to results when the timer expires", async () => {
+      setTestAttemptDurationMs(1_500);
+      seedLiveExam(60);
+      renderApp("/exam/se1");
+
+      await screen.findByRole("timer", { name: /time remaining/i });
+
+      expect(await screen.findByText(/back to results/i, {}, { timeout: 5_000 })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Live Exam" })).toBeInTheDocument();
+    });
+
+    it("shows a time-up toast on autosubmit", async () => {
+      setTestAttemptDurationMs(1_500);
+      seedLiveExam(60);
+      renderApp("/exam/se1");
+
+      await screen.findByRole("timer", { name: /time remaining/i });
+
+      expect(
+        await screen.findByText("Time's up — exam submitted.", {}, { timeout: 5_000 }),
+      ).toBeInTheDocument();
+    });
+  });
+});
+
+describe("student exam taking — access", () => {
+  it("loads question progress on start", async () => {
+    seedLiveExam();
     renderApp("/exam/se1");
 
     expect(await screen.findByRole("heading", { name: "Live Exam" })).toBeInTheDocument();
-    expect(screen.getByRole("timer")).toBeInTheDocument();
     expect(screen.getByText(/0\/2 attempted/i)).toBeInTheDocument();
     expect(screen.getByText(/question 1 of 2/i)).toBeInTheDocument();
-  });
-
-  it("navigates questions and saves answers", async () => {
-    seedSession(toPublic("student"));
-    seedStudentExam(
-      makeExam({ id: "se1", title: "Live Exam", createdById: TEST_USERS.teacher.id }),
-      questions(),
-    );
-    const { user } = renderApp("/exam/se1");
-
-    await screen.findByText("Pick four");
-    await user.click(screen.getByLabelText("4"));
-    expect(await screen.findByText(/1\/2 attempted/i)).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: /next/i }));
-    await screen.findByText("Sky is blue");
-    await user.click(screen.getByLabelText("true"));
-    expect(await screen.findByText(/2\/2 attempted/i)).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: /previous/i }));
-    expect(await screen.findByText("Pick four")).toBeInTheDocument();
-  });
-
-  it("submits manually and redirects to the result page", async () => {
-    seedSession(toPublic("student"));
-    seedStudentExam(
-      makeExam({ id: "se1", title: "Live Exam", createdById: TEST_USERS.teacher.id }),
-      questions(),
-    );
-    const { user } = renderApp("/exam/se1");
-
-    await screen.findByText("Pick four");
-    await user.click(screen.getByLabelText("4"));
-
-    vi.spyOn(window, "confirm").mockReturnValue(true);
-    await user.click(screen.getByRole("button", { name: /submit exam/i }));
-
-    expect(await screen.findByText(/back to results/i)).toBeInTheDocument();
-    expect(screen.getAllByText("1/2").length).toBeGreaterThanOrEqual(1);
   });
 
   it("blocks staff from the student exam route", async () => {
@@ -95,9 +186,7 @@ describe("student exam taking", () => {
 
     await screen.findByText("teacher dashboard");
   });
-});
 
-describe("student exam — validation", () => {
   it("shows an error when the exam cannot be started", async () => {
     seedSession(toPublic("student"));
     const future = new Date(Date.now() + 86_400_000).toISOString();
