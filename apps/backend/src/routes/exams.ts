@@ -9,6 +9,7 @@ import { parseOr400 } from "../lib/validation.js";
 import { requireAuth, requireStaff } from "../middleware/auth.js";
 import { loadExam, requireExamWrite } from "../middleware/exam.js";
 import { examCreateSchema, examUpdateSchema } from "../validation/schemas.js";
+import { analyticsRouter } from "./analytics.js";
 import { assignmentsRouter } from "./assignments.js";
 import { attemptsRouter } from "./attempts.js";
 import { questionsRouter } from "./questions.js";
@@ -112,3 +113,4 @@ examsRouter.delete(
 examsRouter.use("/:examId/questions", questionsRouter);
 examsRouter.use("/:examId/students", assignmentsRouter);
 examsRouter.use("/:examId/attempt", attemptsRouter);
+examsRouter.use("/:examId/analytics", analyticsRouter);
