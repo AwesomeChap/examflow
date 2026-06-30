@@ -13,12 +13,19 @@ const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? "admin123";
 const teacherPassword = process.env.SEED_TEACHER_PASSWORD ?? "teacher123";
 const studentPassword = process.env.SEED_STUDENT_PASSWORD ?? "student123";
 
+// Domains used by seeded accounts (current + legacy) so reseeding removes any
+// stale rows whose email changed, instead of leaving orphans behind.
+const SEED_EMAIL_DOMAINS = [
+  "@examflow.edu",
+  "@stud.examflow.edu",
+  "@domain.edu",
+  "@examflow.local",
+];
+
 async function main() {
   await prisma.user.deleteMany({
     where: {
-      email: {
-        endsWith: "@examflow.local",
-      },
+      OR: SEED_EMAIL_DOMAINS.map((domain) => ({ email: { endsWith: domain } })),
     },
   });
 
@@ -31,35 +38,35 @@ async function main() {
   const users = [
     {
       name: "Admin User",
-      email: "admin@domain.edu",
+      email: "admin@examflow.edu",
       role: UserRole.admin,
       passwordHash: adminHash,
       matriculationNumber: null,
     },
     {
       name: "Jane Teacher",
-      email: "jane@domain.edu",
+      email: "jane@examflow.edu",
       role: UserRole.teacher,
       passwordHash: teacherHash,
       matriculationNumber: null,
     },
     {
       name: "Alice Student",
-      email: "alice@domain.edu",
+      email: "alice@stud.examflow.edu",
       role: UserRole.student,
       passwordHash: studentHash,
       matriculationNumber: "MAT2024001",
     },
     {
       name: "Bob Student",
-      email: "bob@domain.edu",
+      email: "bob@stud.examflow.edu",
       role: UserRole.student,
       passwordHash: studentHash,
       matriculationNumber: "MAT2024002",
     },
     {
       name: "Carol Student",
-      email: "carol@domain.edu",
+      email: "carol@stud.examflow.edu",
       role: UserRole.student,
       passwordHash: studentHash,
       matriculationNumber: "MAT2024003",

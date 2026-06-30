@@ -1,6 +1,8 @@
 import cookieParser from "cookie-parser";
+import cors from "cors";
 import express from "express";
 import type { NextFunction, Request, Response } from "express";
+import { env } from "./lib/env.js";
 import { sendError } from "./lib/http.js";
 import { adminRouter } from "./routes/admin.js";
 import { authRouter } from "./routes/auth.js";
@@ -12,6 +14,14 @@ import { teacherRouter } from "./routes/teacher.js";
 export function createApp() {
   const app = express();
 
+  // Allow the browser client to send/receive the HttpOnly auth cookie across
+  // origins (e.g. Vite dev server -> API). `credentials` is required for cookies.
+  app.use(
+    cors({
+      origin: env.corsOrigins,
+      credentials: true,
+    }),
+  );
   app.use(express.json());
   app.use(cookieParser());
 
