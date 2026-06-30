@@ -333,4 +333,91 @@ describe("exam attempt flow", () => {
       assert.equal(res.status, 409);
     });
   });
+
+  describe("score calculation correctness", () => {
+    // Helper: start, answer the two questions, submit, return the score.
+    async function scoreFor(answers: { mcq?: string; tf?: string }) {
+      const { exam, mcq, tf } = await makeExam();
+      await studentAgent.post(`/exams/${exam.id}/attempt`);
+      if (answers.mcq !== undefined) {
+        await studentAgent
+          .put(`/exams/${exam.id}/attempt/answers/${mcq.id}`)
+          .send({ value: answers.mcq });
+      }
+      if (answers.tf !== undefined) {
+        await studentAgent
+          .put(`/exams/${exam.id}/attempt/answers/${tf.id}`)
+          .send({ value: answers.tf });
+      }
+      const res = await studentAgent.post(`/exams/${exam.id}/attempt/submit`);
+      assert.equal(res.status, 200);
+      return res.body.attempt.score as number;
+    }
+
+    // MCQ is worth 2 points, true/false is worth 3 points (total 5).
+    it("awards full marks when every answer is correct", async () => {
+      assert.equal(await scoreFor({ mcq: "4", tf: "true" }), 5);
+    });
+
+    it("awards zero when all answers are wrong", async () => {
+      assert.equal(await scoreFor({ mcq: "3", tf: "false" }), 0);
+    });
+
+    it("sums only the points of the correctly answered questions", async () => {
+      // MCQ correct (2), true/false wrong (0).
+      assert.equal(await scoreFor({ mcq: "4", tf: "false" }), 2);
+      // MCQ wrong (0), true/false correct (3).
+      assert.equal(await scoreFor({ mcq: "3", tf: "true" }), 3);
+    });
+
+    it("ignores unanswered questions", async () => {
+      // Only the true/false answered correctly -> 3 of a possible 5.
+      assert.equal(await scoreFor({ tf: "true" }), 3);
+    });
+
+    it("scores zero when nothing is answered", async () => {
+      assert.equal(await scoreFor({}), 0);
+    });
+  });
+
+  describe("attempt cannot be modified after submission", () => {
+    it("rejects late answers and leaves the stored answer + score intact", async () => {
+      const { exam, mcq, tf } = await makeExam();
+      await studentAgent.post(`/exams/${exam.id}/attempt`);
+      await studentAgent
+        .put(`/exams/${exam.id}/attempt/answers/${mcq.id}`)
+        .send({ value: "4" }); // correct (2 pts)
+      await studentAgent
+        .put(`/exams/${exam.id}/attempt/answers/${tf.id}`)
+        .send({ value: "false" }); // wrong (0 pts)
+
+      const submitted = await studentAgent.post(
+        `/exams/${exam.id}/attempt/submit`,
+      );
+      assert.equal(submitted.body.attempt.score, 2);
+
+      // Try to "fix" the wrong answer after submitting.
+      const late = await studentAgent
+        .put(`/exams/${exam.id}/attempt/answers/${tf.id}`)
+        .send({ value: "true" });
+      assert.equal(late.status, 409);
+
+      // State is unchanged: same score, and the stored value was not updated.
+      const state = await studentAgent.get(`/exams/${exam.id}/attempt`);
+      assert.equal(state.body.attempt.score, 2, "score must not change");
+      const tfAnswer = state.body.attempt.answers.find(
+        (a: { questionId: string }) => a.questionId === tf.id,
+      );
+      assert.equal(tfAnswer.value, "false", "stored answer must not change");
+    });
+
+    it("rejects re-starting a submitted attempt (409)", async () => {
+      const { exam } = await makeExam();
+      await studentAgent.post(`/exams/${exam.id}/attempt`);
+      await studentAgent.post(`/exams/${exam.id}/attempt/submit`);
+
+      const res = await studentAgent.post(`/exams/${exam.id}/attempt`);
+      assert.equal(res.status, 409);
+    });
+  });
 });
