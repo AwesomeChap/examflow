@@ -4,6 +4,7 @@ import { signAuthToken, verifyPassword } from "../lib/auth.js";
 import { env } from "../lib/env.js";
 import { prisma } from "../lib/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
+import { getCurrentUser } from "./me.js";
 
 const ONE_DAY_MS = 1000 * 60 * 60 * 24;
 
@@ -65,16 +66,5 @@ authRouter.post("/logout", (_req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-authRouter.get("/me", requireAuth, async (req: Request, res: Response) => {
-  const user = await prisma.user.findUnique({
-    where: { id: req.user!.sub },
-    select: { id: true, name: true, email: true, role: true },
-  });
-
-  if (!user) {
-    res.status(404).json({ error: "User not found" });
-    return;
-  }
-
-  res.json({ user });
-});
+// Backward-compatible alias for the canonical `/me` endpoint.
+authRouter.get("/me", requireAuth, getCurrentUser);

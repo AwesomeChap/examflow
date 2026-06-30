@@ -1,8 +1,9 @@
 import cookieParser from "cookie-parser";
 import express from "express";
-import type { Request, Response } from "express";
-import { requireAuth, requireRole } from "./middleware/auth.js";
+import { adminRouter } from "./routes/admin.js";
 import { authRouter } from "./routes/auth.js";
+import { meRouter } from "./routes/me.js";
+import { teacherRouter } from "./routes/teacher.js";
 
 export function createApp() {
   const app = express();
@@ -15,19 +16,9 @@ export function createApp() {
   });
 
   app.use("/auth", authRouter);
-
-  // Example protected route: any authenticated staff member.
-  app.get(
-    "/admin/overview",
-    requireAuth,
-    requireRole("admin", "teacher"),
-    (req: Request, res: Response) => {
-      res.json({
-        message: `Welcome, ${req.user!.email}`,
-        role: req.user!.role,
-      });
-    },
-  );
+  app.use("/me", meRouter);
+  app.use("/admin", adminRouter);
+  app.use("/teacher", teacherRouter);
 
   return app;
 }

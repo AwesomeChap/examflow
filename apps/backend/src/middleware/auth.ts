@@ -38,3 +38,10 @@ export function requireRole(...roles: UserRole[]) {
     next();
   };
 }
+
+// Convenience guards for the three roles. Each must run after `requireAuth`.
+// `requireStaff` treats admin as a superset of teacher (admin can do anything
+// a teacher can). Use the generic `requireRole(...)` for any custom combination.
+export const requireAdmin = requireRole("admin");
+export const requireStaff = requireRole("admin", "teacher");
+export const requireStudent = requireRole("student");
