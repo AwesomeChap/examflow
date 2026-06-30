@@ -1,6 +1,7 @@
 import cookieParser from "cookie-parser";
 import express from "express";
 import type { NextFunction, Request, Response } from "express";
+import { sendError } from "./lib/http.js";
 import { adminRouter } from "./routes/admin.js";
 import { authRouter } from "./routes/auth.js";
 import { examsRouter } from "./routes/exams.js";
@@ -27,7 +28,7 @@ export function createApp() {
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
     console.error(err);
     if (res.headersSent) return;
-    res.status(500).json({ error: "Internal server error" });
+    sendError(res, 500, "Internal server error");
   });
 
   return app;

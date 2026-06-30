@@ -1,10 +1,13 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
-import { canReadExam, canWriteExam, examListFilter } from "../lib/examAccess.js";
-import { handleKnownPrismaError } from "../lib/http.js";
+import { canReadExam, examListFilter } from "../lib/examAccess.js";
+import { handleKnownPrismaError, sendError } from "../lib/http.js";
+import { param } from "../lib/params.js";
+import { publicUserSelect, stripAnswerForStudent } from "../lib/present.js";
 import { prisma } from "../lib/prisma.js";
 import { parseOr400 } from "../lib/validation.js";
 import { requireAuth, requireStaff } from "../middleware/auth.js";
+import { loadExam, requireExamWrite } from "../middleware/exam.js";
 import { examCreateSchema, examUpdateSchema } from "../validation/schemas.js";
 import { assignmentsRouter } from "./assignments.js";
 import { questionsRouter } from "./questions.js";
@@ -20,7 +23,7 @@ examsRouter.get("/", async (req: Request, res: Response) => {
     where: examListFilter(req.user!),
     orderBy: { createdAt: "desc" },
     include: {
-      createdBy: { select: { id: true, name: true, email: true } },
+      createdBy: { select: publicUserSelect },
       _count: { select: { questions: true, attempts: true, assignments: true } },
     },
   });
@@ -29,34 +32,28 @@ examsRouter.get("/", async (req: Request, res: Response) => {
 
 // Get a single exam with its questions (if the user is authorized to see it).
 examsRouter.get("/:examId", async (req: Request, res: Response) => {
-  const { examId } = req.params as { examId: string };
   const exam = await prisma.exam.findUnique({
-    where: { id: examId },
+    where: { id: param(req, "examId") },
     include: {
-      createdBy: { select: { id: true, name: true, email: true } },
+      createdBy: { select: publicUserSelect },
       questions: { orderBy: { order: "asc" } },
     },
   });
 
   // 404 for both missing and unauthorized to avoid leaking existence.
   if (!exam || !(await canReadExam(req.user!, exam))) {
-    res.status(404).json({ error: "Exam not found" });
+    sendError(res, 404, "Exam not found");
     return;
   }
 
   // Students must never receive the correct answers.
-  if (req.user!.role === "student") {
-    const { questions, ...rest } = exam;
-    res.json({
-      exam: {
-        ...rest,
-        questions: questions.map(({ correctAnswer: _omit, ...q }) => q),
-      },
-    });
-    return;
-  }
-
-  res.json({ exam });
+  const role = req.user!.role;
+  res.json({
+    exam: {
+      ...exam,
+      questions: exam.questions.map((q) => stripAnswerForStudent(role, q)),
+    },
+  });
 });
 
 // Create an exam (staff only). The creator becomes the owner.
@@ -76,43 +73,32 @@ examsRouter.post("/", requireStaff, async (req: Request, res: Response) => {
 });
 
 // Update an exam (admin or owning teacher).
-examsRouter.put("/:examId", requireStaff, async (req: Request, res: Response) => {
-  const { examId } = req.params as { examId: string };
+examsRouter.put(
+  "/:examId",
+  requireStaff,
+  loadExam,
+  requireExamWrite,
+  async (req: Request, res: Response) => {
+    const data = parseOr400(examUpdateSchema, req.body, res);
+    if (!data) return;
 
-  const existing = await prisma.exam.findUnique({
-    where: { id: examId },
-    select: { id: true, createdById: true },
-  });
-  if (!existing || !canWriteExam(req.user!, existing)) {
-    res.status(404).json({ error: "Exam not found" });
-    return;
-  }
-
-  const data = parseOr400(examUpdateSchema, req.body, res);
-  if (!data) return;
-
-  const exam = await prisma.exam.update({ where: { id: examId }, data });
-  res.json({ exam });
-});
+    const exam = await prisma.exam.update({
+      where: { id: req.exam!.id },
+      data,
+    });
+    res.json({ exam });
+  },
+);
 
 // Delete an exam (admin or owning teacher). Cascades to questions/attempts.
 examsRouter.delete(
   "/:examId",
   requireStaff,
+  loadExam,
+  requireExamWrite,
   async (req: Request, res: Response) => {
-    const { examId } = req.params as { examId: string };
-
-    const existing = await prisma.exam.findUnique({
-      where: { id: examId },
-      select: { id: true, createdById: true },
-    });
-    if (!existing || !canWriteExam(req.user!, existing)) {
-      res.status(404).json({ error: "Exam not found" });
-      return;
-    }
-
     try {
-      await prisma.exam.delete({ where: { id: examId } });
+      await prisma.exam.delete({ where: { id: req.exam!.id } });
       res.status(204).send();
     } catch (error) {
       if (handleKnownPrismaError(error, res)) return;

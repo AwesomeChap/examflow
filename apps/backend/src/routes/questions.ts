@@ -1,11 +1,14 @@
 import { Router } from "express";
-import type { NextFunction, Request, Response } from "express";
+import type { Request, Response } from "express";
 import { Prisma } from "../generated/prisma/client.js";
-import { canReadExam, canWriteExam } from "../lib/examAccess.js";
-import { handleKnownPrismaError } from "../lib/http.js";
+import { canReadExam } from "../lib/examAccess.js";
+import { handleKnownPrismaError, sendError } from "../lib/http.js";
+import { param } from "../lib/params.js";
+import { stripAnswerForStudent } from "../lib/present.js";
 import { prisma } from "../lib/prisma.js";
 import { parseOr400 } from "../lib/validation.js";
 import { requireStaff } from "../middleware/auth.js";
+import { loadExam, requireExamWrite } from "../middleware/exam.js";
 import {
   questionCreateSchema,
   questionPatchSchema,
@@ -14,20 +17,8 @@ import {
 // mergeParams lets us read :examId from the parent router.
 export const questionsRouter = Router({ mergeParams: true });
 
-// Load the parent exam once; 404 if it doesn't exist.
-questionsRouter.use(async (req: Request, res: Response, next: NextFunction) => {
-  const { examId } = req.params as { examId: string };
-  const exam = await prisma.exam.findUnique({
-    where: { id: examId },
-    select: { id: true, createdById: true },
-  });
-  if (!exam) {
-    res.status(404).json({ error: "Exam not found" });
-    return;
-  }
-  req.exam = exam;
-  next();
-});
+// Load the parent exam (into req.exam) for every question route; 404 if absent.
+questionsRouter.use(loadExam);
 
 async function nextOrder(examId: string): Promise<number> {
   const agg = await prisma.question.aggregate({
@@ -43,19 +34,10 @@ async function ensureReadAccess(
   res: Response,
 ): Promise<boolean> {
   if (!(await canReadExam(req.user!, req.exam!))) {
-    res.status(404).json({ error: "Exam not found" });
+    sendError(res, 404, "Exam not found");
     return false;
   }
   return true;
-}
-
-// Strip correctAnswer for students.
-function presentQuestion(req: Request, question: { correctAnswer: string }) {
-  if (req.user!.role === "student") {
-    const { correctAnswer: _omit, ...rest } = question;
-    return rest;
-  }
-  return question;
 }
 
 // List questions for an exam.
@@ -66,69 +48,65 @@ questionsRouter.get("/", async (req: Request, res: Response) => {
     where: { examId: req.exam!.id },
     orderBy: { order: "asc" },
   });
-  res.json({ questions: questions.map((q) => presentQuestion(req, q)) });
+  const role = req.user!.role;
+  res.json({ questions: questions.map((q) => stripAnswerForStudent(role, q)) });
 });
 
 // Get a single question.
 questionsRouter.get("/:questionId", async (req: Request, res: Response) => {
   if (!(await ensureReadAccess(req, res))) return;
 
-  const { questionId } = req.params as { questionId: string };
   const question = await prisma.question.findFirst({
-    where: { id: questionId, examId: req.exam!.id },
+    where: { id: param(req, "questionId"), examId: req.exam!.id },
   });
   if (!question) {
-    res.status(404).json({ error: "Question not found" });
+    sendError(res, 404, "Question not found");
     return;
   }
-  res.json({ question: presentQuestion(req, question) });
+  res.json({ question: stripAnswerForStudent(req.user!.role, question) });
 });
 
 // Create a question (admin or owning teacher).
-questionsRouter.post("/", requireStaff, async (req: Request, res: Response) => {
-  if (!canWriteExam(req.user!, req.exam!)) {
-    res.status(404).json({ error: "Exam not found" });
-    return;
-  }
+questionsRouter.post(
+  "/",
+  requireStaff,
+  requireExamWrite,
+  async (req: Request, res: Response) => {
+    const data = parseOr400(questionCreateSchema, req.body, res);
+    if (!data) return;
 
-  const data = parseOr400(questionCreateSchema, req.body, res);
-  if (!data) return;
+    const examId = req.exam!.id;
+    const order = data.order ?? (await nextOrder(examId));
 
-  const examId = req.exam!.id;
-  const order = data.order ?? (await nextOrder(examId));
-
-  try {
-    const question = await prisma.question.create({
-      data: {
-        examId,
-        type: data.type,
-        text: data.text,
-        correctAnswer: data.correctAnswer,
-        order,
-        points: data.points,
-        // For true_false, `options` is omitted -> stored as SQL NULL.
-        ...(data.type === "mcq" ? { options: data.options } : {}),
-      },
-    });
-    res.status(201).json({ question });
-  } catch (error) {
-    if (handleKnownPrismaError(error, res)) return;
-    throw error;
-  }
-});
+    try {
+      const question = await prisma.question.create({
+        data: {
+          examId,
+          type: data.type,
+          text: data.text,
+          correctAnswer: data.correctAnswer,
+          order,
+          points: data.points,
+          // For true_false, `options` is omitted -> stored as SQL NULL.
+          ...(data.type === "mcq" ? { options: data.options } : {}),
+        },
+      });
+      res.status(201).json({ question });
+    } catch (error) {
+      if (handleKnownPrismaError(error, res)) return;
+      throw error;
+    }
+  },
+);
 
 // Update a question (admin or owning teacher). Body may be partial; the merged
 // result is re-validated so MCQ/True-False shape rules always hold.
 questionsRouter.put(
   "/:questionId",
   requireStaff,
+  requireExamWrite,
   async (req: Request, res: Response) => {
-    if (!canWriteExam(req.user!, req.exam!)) {
-      res.status(404).json({ error: "Exam not found" });
-      return;
-    }
-
-    const { questionId } = req.params as { questionId: string };
+    const questionId = param(req, "questionId");
     const patch = parseOr400(questionPatchSchema, req.body, res);
     if (!patch) return;
 
@@ -136,7 +114,7 @@ questionsRouter.put(
       where: { id: questionId, examId: req.exam!.id },
     });
     if (!existing) {
-      res.status(404).json({ error: "Question not found" });
+      sendError(res, 404, "Question not found");
       return;
     }
 
@@ -183,19 +161,15 @@ questionsRouter.put(
 questionsRouter.delete(
   "/:questionId",
   requireStaff,
+  requireExamWrite,
   async (req: Request, res: Response) => {
-    if (!canWriteExam(req.user!, req.exam!)) {
-      res.status(404).json({ error: "Exam not found" });
-      return;
-    }
-
-    const { questionId } = req.params as { questionId: string };
+    const questionId = param(req, "questionId");
     const existing = await prisma.question.findFirst({
       where: { id: questionId, examId: req.exam!.id },
       select: { id: true },
     });
     if (!existing) {
-      res.status(404).json({ error: "Question not found" });
+      sendError(res, 404, "Question not found");
       return;
     }
 

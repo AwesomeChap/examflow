@@ -1,38 +1,24 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
-import { canWriteExam } from "../lib/examAccess.js";
-import { handleKnownPrismaError } from "../lib/http.js";
+import { handleKnownPrismaError, sendError } from "../lib/http.js";
+import { param } from "../lib/params.js";
 import { prisma } from "../lib/prisma.js";
 import { parseOr400 } from "../lib/validation.js";
 import { requireStaff } from "../middleware/auth.js";
+import { loadExam, requireExamWrite } from "../middleware/exam.js";
 import { assignStudentsSchema } from "../validation/schemas.js";
 
 // mergeParams to read :examId from the parent exams router.
 export const assignmentsRouter = Router({ mergeParams: true });
 
-// Managing the authorized-student list is staff-only and owner-scoped.
-assignmentsRouter.use(requireStaff);
-
-// Loads the exam and enforces write access (admin or the creating teacher).
-assignmentsRouter.use(async (req: Request, res: Response, next) => {
-  const { examId } = req.params as { examId: string };
-  const exam = await prisma.exam.findUnique({
-    where: { id: examId },
-    select: { id: true, createdById: true },
-  });
-
-  if (!exam || !canWriteExam(req.user!, exam)) {
-    res.status(404).json({ error: "Exam not found" });
-    return;
-  }
-  next();
-});
+// Managing the authorized-student list is staff-only and owner-scoped:
+// must be staff, the exam must exist, and the caller must be able to write it.
+assignmentsRouter.use(requireStaff, loadExam, requireExamWrite);
 
 // List authorized students for an exam.
 assignmentsRouter.get("/", async (req: Request, res: Response) => {
-  const { examId } = req.params as { examId: string };
   const assignments = await prisma.examAssignment.findMany({
-    where: { examId },
+    where: { examId: req.exam!.id },
     orderBy: { assignedAt: "asc" },
     select: {
       assignedAt: true,
@@ -46,7 +32,7 @@ assignmentsRouter.get("/", async (req: Request, res: Response) => {
 
 // Assign one or more students to an exam.
 assignmentsRouter.post("/", async (req: Request, res: Response) => {
-  const { examId } = req.params as { examId: string };
+  const examId = req.exam!.id;
   const data = parseOr400(assignStudentsSchema, req.body, res);
   if (!data) return;
 
@@ -61,10 +47,7 @@ assignmentsRouter.post("/", async (req: Request, res: Response) => {
   const invalidIds = uniqueIds.filter((id) => !validIds.has(id));
 
   if (invalidIds.length > 0) {
-    res.status(400).json({
-      error: "Some ids are not valid students",
-      invalidIds,
-    });
+    sendError(res, 400, "Some ids are not valid students", { invalidIds });
     return;
   }
 
@@ -84,10 +67,8 @@ assignmentsRouter.post("/", async (req: Request, res: Response) => {
 assignmentsRouter.delete(
   "/:studentId",
   async (req: Request, res: Response) => {
-    const { examId, studentId } = req.params as {
-      examId: string;
-      studentId: string;
-    };
+    const examId = req.exam!.id;
+    const studentId = param(req, "studentId");
 
     try {
       await prisma.examAssignment.delete({

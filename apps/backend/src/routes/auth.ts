@@ -2,6 +2,7 @@ import { Router } from "express";
 import type { CookieOptions, Request, Response } from "express";
 import { signAuthToken, verifyPassword } from "../lib/auth.js";
 import { env } from "../lib/env.js";
+import { sendError } from "../lib/http.js";
 import { prisma } from "../lib/prisma.js";
 import { parseOr400 } from "../lib/validation.js";
 import { requireAuth } from "../middleware/auth.js";
@@ -40,13 +41,13 @@ authRouter.post("/login", async (req: Request, res: Response) => {
 
   // Any account with a password may log in (admin, teacher, or student).
   if (!user || !user.passwordHash) {
-    res.status(401).json({ error: "Invalid credentials" });
+    sendError(res, 401, "Invalid credentials");
     return;
   }
 
   const passwordValid = await verifyPassword(data.password, user.passwordHash);
   if (!passwordValid) {
-    res.status(401).json({ error: "Invalid credentials" });
+    sendError(res, 401, "Invalid credentials");
     return;
   }
 

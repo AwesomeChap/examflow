@@ -1,5 +1,6 @@
 import type { Response } from "express";
 import type { ZodError, ZodType } from "zod";
+import { sendError } from "./http.js";
 
 export function formatZodError(error: ZodError): {
   path: string;
@@ -22,8 +23,7 @@ export function parseOr400<T>(
 ): T | null {
   const result = schema.safeParse(body);
   if (!result.success) {
-    res.status(400).json({
-      error: "Validation failed",
+    sendError(res, 400, "Validation failed", {
       details: formatZodError(result.error),
     });
     return null;

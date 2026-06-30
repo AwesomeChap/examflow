@@ -1,5 +1,6 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
+import { sendError } from "../lib/http.js";
 import { prisma } from "../lib/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
 
@@ -21,7 +22,7 @@ export async function getCurrentUser(
   });
 
   if (!user) {
-    res.status(404).json({ error: "User not found" });
+    sendError(res, 404, "User not found");
     return;
   }
 
