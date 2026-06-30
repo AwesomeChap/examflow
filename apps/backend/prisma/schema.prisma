@@ -23,6 +23,7 @@ model User {
   name                String
   email               String   @unique
   role                UserRole
+  passwordHash        String?
   matriculationNumber String?  @unique
   createdAt           DateTime @default(now())
 
