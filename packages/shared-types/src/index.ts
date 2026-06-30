@@ -1,4 +1,5 @@
 export type { Answer } from "./answer.js";
+export type { ExamAssignment } from "./assignment.js";
 export type { Attempt } from "./attempt.js";
 export type { Exam } from "./exam.js";
 export type {
