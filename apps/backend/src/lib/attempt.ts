@@ -139,6 +139,67 @@ export function presentAttempt(
   };
 }
 
+type ResultAttempt = {
+  id: string;
+  examId: string;
+  submittedAt: Date | null;
+  score: number | null;
+};
+
+type ResultQuestion = {
+  id: string;
+  points: number;
+};
+
+/**
+ * Processes a submitted attempt into a student-facing result: the persisted
+ * `score`, the achievable `maxScore` (sum of question points), a `percentage`,
+ * and a per-question breakdown of points awarded. Unanswered questions appear
+ * with `awardedPoints: 0` and `isCorrect: null`. The correct answer text is
+ * never included, consistent with the rest of the student-facing API.
+ */
+export function buildAttemptResult(
+  attempt: ResultAttempt,
+  questions: ResultQuestion[],
+  answers: PresentableAnswer[],
+) {
+  const answerByQuestion = new Map(answers.map((a) => [a.questionId, a]));
+
+  const maxScore = questions.reduce((sum, q) => sum + q.points, 0);
+  let correctCount = 0;
+
+  const breakdown = questions.map((q) => {
+    const answer = answerByQuestion.get(q.id);
+    const isCorrect = answer?.isCorrect ?? null;
+    if (isCorrect === true) correctCount += 1;
+
+    return {
+      questionId: q.id,
+      points: q.points,
+      awardedPoints: isCorrect === true ? q.points : 0,
+      answered: answer !== undefined,
+      value: answer?.value ?? null,
+      isCorrect,
+    };
+  });
+
+  const score = attempt.score ?? 0;
+  const percentage =
+    maxScore > 0 ? Math.round((score / maxScore) * 10000) / 100 : 0;
+
+  return {
+    attemptId: attempt.id,
+    examId: attempt.examId,
+    submittedAt: attempt.submittedAt,
+    score,
+    maxScore,
+    percentage,
+    totalQuestions: questions.length,
+    correctCount,
+    breakdown,
+  };
+}
+
 /**
  * Validates a submitted answer value against its question's type:
  *  - true_false: must be exactly "true" or "false"

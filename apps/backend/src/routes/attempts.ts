@@ -2,6 +2,7 @@ import { Router } from "express";
 import type { Request, Response } from "express";
 import {
   attemptDeadline,
+  buildAttemptResult,
   finalizeAttempt,
   isAttemptExpired,
   isValidAnswerValue,
@@ -119,6 +120,44 @@ attemptsRouter.get("/", async (req: Request, res: Response) => {
 
   const answers = await listAnswers(current.id);
   res.json({ attempt: presentAttempt(current, exam.durationMin, answers) });
+});
+
+// Retrieve the processed result of a submitted attempt (score breakdown).
+attemptsRouter.get("/result", async (req: Request, res: Response) => {
+  const exam = await loadExamContext(req, res);
+  if (!exam) return;
+
+  const attempt = await findAttempt(exam.id, req.user!.sub);
+  if (!attempt) {
+    sendError(res, 404, "Attempt not found");
+    return;
+  }
+
+  // Results only exist once submitted; finalize first if the limit has passed.
+  let current = attempt;
+  if (
+    !attempt.submittedAt &&
+    isAttemptExpired(attempt.startedAt, exam.durationMin)
+  ) {
+    current = await finalizeAttempt(attempt, {
+      submittedAt: attemptDeadline(attempt.startedAt, exam.durationMin),
+    });
+  }
+  if (!current.submittedAt) {
+    sendError(res, 409, "Attempt not yet submitted");
+    return;
+  }
+
+  const [questions, answers] = await Promise.all([
+    prisma.question.findMany({
+      where: { examId: exam.id },
+      orderBy: { order: "asc" },
+      select: { id: true, points: true },
+    }),
+    listAnswers(current.id),
+  ]);
+
+  res.json({ result: buildAttemptResult(current, questions, answers) });
 });
 
 // Store / update the answer to one question during an attempt.
