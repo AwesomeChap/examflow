@@ -45,6 +45,9 @@ model Exam {
   questions   Question[]
   attempts    Attempt[]
   assignments ExamAssignment[]
+
+  // Speeds up the teacher exam-list filter ({ createdById }) and creator joins.
+  @@index([createdById])
 }
 
 // Authorized students for an exam (explicit join table for extensibility).
@@ -91,6 +94,9 @@ model Attempt {
   answers Answer[]
 
   @@unique([userId, examId])
+  // userId is covered by the unique above; index examId for per-exam queries
+  // (e.g. attempt counts) and FK cascade on exam deletion.
+  @@index([examId])
 }
 
 model Answer {
@@ -105,4 +111,7 @@ model Answer {
   question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@unique([attemptId, questionId])
+  // attemptId is covered by the unique above; index questionId for FK cascade
+  // on question deletion and per-question answer lookups.
+  @@index([questionId])
 }
