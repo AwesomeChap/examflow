@@ -1,0 +1,9 @@
+{
+  "name": "@examflow/backend",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "echo \"Backend dev server not configured yet\"",
+    "build": "echo \"Backend build not configured yet\""
+  }
+}

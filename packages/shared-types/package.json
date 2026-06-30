@@ -1,0 +1,10 @@
+{
+  "name": "@examflow/shared-types",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "build": "echo \"Shared types build not configured yet\""
+  }
+}

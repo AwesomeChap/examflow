@@ -1,0 +1,14 @@
+{
+  "name": "examflow",
+  "version": "0.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:frontend": "npm run dev --workspace=@examflow/frontend",
+    "dev:backend": "npm run dev --workspace=@examflow/backend",
+    "build": "npm run build --workspaces --if-present"
+  }
+}
