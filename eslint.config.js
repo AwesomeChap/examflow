@@ -22,6 +22,22 @@ export default tseslint.config(
     },
   },
   {
+    rules: {
+      // Treat a leading underscore as an explicit "intentionally unused" marker,
+      // and ignore destructured siblings kept only to omit a key via `...rest`.
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          args: "all",
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+          ignoreRestSiblings: true,
+        },
+      ],
+    },
+  },
+  {
     files: ["apps/frontend/**/*.{ts,tsx}"],
     languageOptions: {
       ecmaVersion: 2022,
