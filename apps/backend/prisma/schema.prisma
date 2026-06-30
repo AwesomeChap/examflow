@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  admin
+  teacher
+  student
+}
+
+enum QuestionType {
+  mcq
+  true_false
+}
+
+model User {
+  id                  String   @id @default(cuid())
+  name                String
+  email               String   @unique
+  role                UserRole
+  matriculationNumber String?  @unique
+  createdAt           DateTime @default(now())
+
+  createdExams Exam[]    @relation("ExamCreator")
+  attempts     Attempt[]
+}
+
+model Exam {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  durationMin Int      @default(60)
+  createdAt   DateTime @default(now())
+
+  createdById String
+  createdBy   User   @relation("ExamCreator", fields: [createdById], references: [id])
+
+  questions Question[]
+  attempts  Attempt[]
+}
+
+model Question {
+  id            String       @id @default(cuid())
+  text          String
+  type          QuestionType @default(mcq)
+  options       Json?
+  correctAnswer String
+  order         Int
+  points        Int          @default(1)
+
+  examId String
+  exam   Exam   @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  answers Answer[]
+
+  @@unique([examId, order])
+}
+
+model Attempt {
+  id          String    @id @default(cuid())
+  startedAt   DateTime  @default(now())
+  submittedAt DateTime?
+  score       Float?
+
+  examId String
+  exam   Exam   @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  answers Answer[]
+
+  @@unique([userId, examId])
+}
+
+model Answer {
+  id        String   @id @default(cuid())
+  value     String
+  isCorrect Boolean?
+
+  attemptId String
+  attempt   Attempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, questionId])
+}

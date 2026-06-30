@@ -13,7 +13,13 @@
     "build": "npm run build --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "db:up": "docker compose up -d postgres",
+    "db:migrate": "npm run db:migrate --workspace=@examflow/backend",
+    "db:migrate:deploy": "npm run db:migrate:deploy --workspace=@examflow/backend",
+    "db:seed": "npm run db:seed --workspace=@examflow/backend",
+    "db:check": "npm run db:check --workspace=@examflow/backend",
+    "db:studio": "npm run db:studio --workspace=@examflow/backend"
   },
   "devDependencies": {
     "@eslint/js": "^9.30.1",
