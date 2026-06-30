@@ -1,1 +1,1 @@
-// Shared types for ExamFlow
+export type { UserRole } from "./user.js";
