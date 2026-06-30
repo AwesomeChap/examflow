@@ -10,6 +10,7 @@ import { requireAuth, requireStaff } from "../middleware/auth.js";
 import { loadExam, requireExamWrite } from "../middleware/exam.js";
 import { examCreateSchema, examUpdateSchema } from "../validation/schemas.js";
 import { assignmentsRouter } from "./assignments.js";
+import { attemptsRouter } from "./attempts.js";
 import { questionsRouter } from "./questions.js";
 
 export const examsRouter = Router();
@@ -110,3 +111,4 @@ examsRouter.delete(
 // Nested routes.
 examsRouter.use("/:examId/questions", questionsRouter);
 examsRouter.use("/:examId/students", assignmentsRouter);
+examsRouter.use("/:examId/attempt", attemptsRouter);

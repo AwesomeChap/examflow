@@ -97,3 +97,14 @@ export const assignStudentsSchema = z.object({
 });
 
 export type AssignStudentsInput = z.infer<typeof assignStudentsSchema>;
+
+// ---------- Attempts ----------
+
+// A single answer submitted during an attempt. Type-specific validity (the
+// value being one of the MCQ options, or "true"/"false") is checked against
+// the loaded question in the route, since it depends on DB state.
+export const answerUpsertSchema = z.object({
+  value: z.string().trim().min(1).max(500),
+});
+
+export type AnswerUpsertInput = z.infer<typeof answerUpsertSchema>;

@@ -1,0 +1,158 @@
+import { prisma } from "./prisma.js";
+
+/**
+ * Attempt timing + grading helpers.
+ *
+ * The exam time limit is enforced entirely on the backend: the deadline is
+ * derived from the attempt's immutable `startedAt` plus the exam's
+ * `durationMin`. The client is never trusted to report elapsed time. Any
+ * interaction with an expired-but-open attempt (reading state, answering, or
+ * submitting) lazily finalizes it, so a student can never record answers past
+ * the limit even if no explicit submit ever arrives.
+ */
+
+const MS_PER_MINUTE = 60_000;
+
+/** Absolute moment the attempt's time runs out. */
+export function attemptDeadline(startedAt: Date, durationMin: number): Date {
+  return new Date(startedAt.getTime() + durationMin * MS_PER_MINUTE);
+}
+
+/** True once the time limit has elapsed for an attempt. */
+export function isAttemptExpired(
+  startedAt: Date,
+  durationMin: number,
+  now: Date = new Date(),
+): boolean {
+  return now.getTime() >= attemptDeadline(startedAt, durationMin).getTime();
+}
+
+/** Milliseconds left before auto-submit (never negative). */
+export function remainingMs(
+  startedAt: Date,
+  durationMin: number,
+  now: Date = new Date(),
+): number {
+  return Math.max(
+    0,
+    attemptDeadline(startedAt, durationMin).getTime() - now.getTime(),
+  );
+}
+
+type AttemptToFinalize = {
+  id: string;
+  examId: string;
+  startedAt: Date;
+};
+
+type GradedAttempt = {
+  id: string;
+  examId: string;
+  userId: string;
+  startedAt: Date;
+  submittedAt: Date | null;
+  score: number | null;
+};
+
+/**
+ * Grades every stored answer against its question and writes the final score.
+ * Runs in a transaction so answer correctness and the attempt score are
+ * persisted atomically. `submittedAt` lets callers stamp an auto-submitted
+ * attempt with the exact deadline rather than "now".
+ */
+export async function finalizeAttempt(
+  attempt: AttemptToFinalize,
+  opts: { submittedAt: Date },
+): Promise<GradedAttempt> {
+  return prisma.$transaction(async (tx) => {
+    const [questions, answers] = await Promise.all([
+      tx.question.findMany({
+        where: { examId: attempt.examId },
+        select: { id: true, correctAnswer: true, points: true },
+      }),
+      tx.answer.findMany({ where: { attemptId: attempt.id } }),
+    ]);
+
+    const byQuestion = new Map(questions.map((q) => [q.id, q]));
+
+    let score = 0;
+    for (const answer of answers) {
+      const question = byQuestion.get(answer.questionId);
+      const isCorrect = question
+        ? answer.value === question.correctAnswer
+        : false;
+      if (isCorrect && question) score += question.points;
+
+      await tx.answer.update({
+        where: { id: answer.id },
+        data: { isCorrect },
+      });
+    }
+
+    return tx.attempt.update({
+      where: { id: attempt.id },
+      data: { submittedAt: opts.submittedAt, score },
+    });
+  });
+}
+
+type PresentableAttempt = {
+  id: string;
+  examId: string;
+  startedAt: Date;
+  submittedAt: Date | null;
+  score: number | null;
+};
+
+type PresentableAnswer = {
+  questionId: string;
+  value: string;
+  isCorrect: boolean | null;
+};
+
+/**
+ * Shapes an attempt for the student response. While the attempt is in progress
+ * we expose the deadline and remaining time but withhold per-answer
+ * correctness; once submitted we reveal `score` and `isCorrect` (but never the
+ * correct answer text itself).
+ */
+export function presentAttempt(
+  attempt: PresentableAttempt,
+  durationMin: number,
+  answers: PresentableAnswer[],
+) {
+  const submitted = attempt.submittedAt !== null;
+
+  return {
+    id: attempt.id,
+    examId: attempt.examId,
+    startedAt: attempt.startedAt,
+    deadline: attemptDeadline(attempt.startedAt, durationMin),
+    submittedAt: attempt.submittedAt,
+    score: submitted ? attempt.score : null,
+    remainingMs: submitted ? 0 : remainingMs(attempt.startedAt, durationMin),
+    answers: answers.map((a) => ({
+      questionId: a.questionId,
+      value: a.value,
+      ...(submitted ? { isCorrect: a.isCorrect } : {}),
+    })),
+  };
+}
+
+/**
+ * Validates a submitted answer value against its question's type:
+ *  - true_false: must be exactly "true" or "false"
+ *  - mcq: must be one of the stored options
+ */
+export function isValidAnswerValue(
+  question: { type: "mcq" | "true_false"; options: unknown },
+  value: string,
+): boolean {
+  if (question.type === "true_false") {
+    return value === "true" || value === "false";
+  }
+  const options = Array.isArray(question.options)
+    ? (question.options as unknown[])
+    : [];
+  return options.includes(value);
+}
