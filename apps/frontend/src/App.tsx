@@ -6,8 +6,12 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { ExamDetailPage } from "./pages/ExamDetailPage";
 import { ExamEditorPage } from "./pages/ExamEditorPage";
 import { LoginPage } from "./pages/LoginPage";
+import { StudentExamPage } from "./pages/StudentExamPage";
+import { StudentResultPage } from "./pages/StudentResultPage";
+import { StudentResultsPage } from "./pages/StudentResultsPage";
 
 const STAFF = ["admin", "teacher"] as const;
+const STUDENT = ["student"] as const;
 
 export default function App() {
   return (
@@ -44,6 +48,30 @@ export default function App() {
           element={
             <ProtectedRoute allowedRoles={[...STAFF]}>
               <ExamDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/exam/:examId"
+          element={
+            <ProtectedRoute allowedRoles={[...STUDENT]}>
+              <StudentExamPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/results"
+          element={
+            <ProtectedRoute allowedRoles={[...STUDENT]}>
+              <StudentResultsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/results/:examId"
+          element={
+            <ProtectedRoute allowedRoles={[...STUDENT]}>
+              <StudentResultPage />
             </ProtectedRoute>
           }
         />

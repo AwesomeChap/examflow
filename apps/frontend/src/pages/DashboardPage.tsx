@@ -5,6 +5,7 @@ import { Button } from "../components/ui/Button";
 import { StatCard } from "../components/ui/StatCard";
 import { useGetAdminDashboardQuery } from "../store/adminApi";
 import type { UserRole } from "../types/user";
+import { StudentDashboardOverview } from "./StudentDashboardSection";
 
 const ROLE_SUMMARY: Record<UserRole, string> = {
   admin: "Manage users, exams, and platform-wide settings.",
@@ -68,6 +69,7 @@ export function DashboardPage() {
 
       {user.role === "admin" && <AdminOverview />}
       {user.role === "teacher" && <TeacherOverview />}
+      {user.role === "student" && <StudentDashboardOverview />}
     </section>
   );
 }

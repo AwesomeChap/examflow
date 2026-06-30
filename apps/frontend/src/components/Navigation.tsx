@@ -17,6 +17,7 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { to: "/dashboard", label: "Dashboard" },
+  { to: "/results", label: "Results", roles: ["student"] },
   { to: "/exams/new", label: "Create Exam", roles: ["admin", "teacher"] },
 ];
 
@@ -40,12 +41,12 @@ export function Navigation() {
       aria-label="Primary"
       className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
     >
-      <Container className="flex items-center gap-3 py-3 sm:gap-6">
-        <Link to="/dashboard" className="shrink-0" aria-label="ExamFlow home">
+      <Container className="flex flex-wrap items-center gap-x-3 gap-y-2 py-3 sm:flex-nowrap sm:gap-6">
+        <Link to="/dashboard" className="order-1 shrink-0" aria-label="ExamFlow home">
           <Logo />
         </Link>
 
-        <ul className="flex items-center gap-1">
+        <ul className="order-3 flex w-full items-center gap-1 sm:order-2 sm:w-auto">
           {visibleItems.map((item) => (
             <li key={item.to}>
               <NavLink
@@ -65,7 +66,7 @@ export function Navigation() {
           ))}
         </ul>
 
-        <div className="ml-auto flex items-center gap-2 sm:gap-3">
+        <div className="order-2 ml-auto flex shrink-0 items-center gap-2 sm:order-3 sm:gap-3">
           <span
             className="hidden text-sm text-slate-500 sm:inline dark:text-slate-400"
             data-testid="current-user"

@@ -6,6 +6,8 @@ import "./questionsApi";
 import "./studentsApi";
 import "./assignmentsApi";
 import "./adminApi";
+import "./studentApi";
+import "./attemptsApi";
 
 export function createStore() {
   return configureStore({

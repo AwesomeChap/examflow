@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { AddQuestionMenu } from "../components/exams/AddQuestionMenu";
 import { QuestionForm } from "../components/exams/QuestionForm";
 import { QuestionList } from "../components/exams/QuestionList";
 import { StudentMultiSelect } from "../components/exams/StudentMultiSelect";
 import { Button } from "../components/ui/Button";
+import { TextArea } from "../components/ui/TextArea";
 import { useCloneExam } from "../hooks/useCloneExam";
 import { useToast } from "../hooks/useToast";
 import { isExamEditable, lockReason } from "../lib/examRules";
@@ -76,7 +77,6 @@ export function ExamEditorPage() {
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [deletingId, setDeletingId] = useState<string>();
   const [actionError, setActionError] = useState<string | null>(null);
-  const descriptionRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (exam) {
@@ -90,14 +90,6 @@ export function ExamEditorPage() {
   useEffect(() => {
     setSelected(assignedIds);
   }, [assignedIds]);
-
-  // Grow the description textarea to fit its content (1 line by default).
-  useEffect(() => {
-    const el = descriptionRef.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${el.scrollHeight}px`;
-  }, [description]);
 
   const editable = useMemo(() => (exam ? isExamEditable(exam) : true), [exam]);
 
@@ -313,18 +305,16 @@ export function ExamEditorPage() {
         />
 
         {/* Description */}
-        <label htmlFor="exam-description" className="sr-only">
-          Exam description
-        </label>
-        <textarea
+        <TextArea
+          label="Exam description"
+          hideLabel
+          variant="plain"
           id="exam-description"
-          ref={descriptionRef}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           onBlur={() => persist({ description: description.trim() || null })}
           placeholder="Add a description…"
-          rows={1}
-          className="mt-2 w-full resize-none overflow-hidden border-0 bg-transparent p-0 text-lg text-slate-600 placeholder:text-slate-300 focus:outline-none dark:text-slate-300 dark:placeholder:text-slate-700"
+          className="mt-2 text-lg text-slate-600 placeholder:text-slate-300 dark:text-slate-300 dark:placeholder:text-slate-700"
         />
 
         {/* Questions */}

@@ -23,7 +23,7 @@ export function Toaster({ toasts, onDismiss }: ToasterProps) {
     <div
       aria-live="polite"
       aria-label="Notifications"
-      className="pointer-events-none fixed inset-x-0 top-4 z-50 flex flex-col items-center gap-2 px-4 sm:inset-x-auto sm:right-4 sm:items-end"
+      className="pointer-events-none fixed inset-x-0 top-4 z-50 flex flex-col items-center gap-2 px-4"
     >
       {toasts.map((toast) => (
         <div

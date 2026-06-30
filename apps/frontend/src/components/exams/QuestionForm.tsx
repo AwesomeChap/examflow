@@ -105,7 +105,6 @@ export function QuestionForm({ initial, initialType, number, submitting, onSubmi
         prefix={number != null ? `#${number}` : undefined}
         value={text}
         onChange={(e) => setText(e.target.value)}
-        rows={2}
         required
       />
 

@@ -31,12 +31,13 @@ describe("role-based navigation visibility", () => {
     expect(nav().getByRole("link", { name: "Create Exam" })).toBeInTheDocument();
   });
 
-  it("shows a student only the dashboard (no exam authoring)", async () => {
+  it("shows a student Dashboard and Results (no exam authoring)", async () => {
     seedSession(toPublic("student"));
     renderApp("/dashboard");
 
     await screen.findByText("student dashboard");
     expect(nav().getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
+    expect(nav().getByRole("link", { name: "Results" })).toBeInTheDocument();
     expect(nav().queryByRole("link", { name: "Create Exam" })).not.toBeInTheDocument();
   });
 

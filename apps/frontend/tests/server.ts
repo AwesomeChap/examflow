@@ -1,8 +1,10 @@
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import type { ExamListItem } from "../src/types/exam";
+import type { Attempt, AttemptResult } from "../src/types/attempt";
 import type { Question } from "../src/types/question";
 import type { Student } from "../src/types/student";
+import type { StudentDashboardExam } from "../src/types/studentDashboard";
 import type { User } from "../src/types/user";
 
 const API = "http://localhost:3000";
@@ -66,6 +68,8 @@ const questionsByExam = new Map<string, Question[]>();
 let studentFixtures: Student[] = [];
 /** Assigned student ids keyed by exam id. */
 const assignmentsByExam = new Map<string, Set<string>>();
+/** In-progress or submitted attempts keyed by `userId:examId`. */
+const attemptsByKey = new Map<string, Attempt>();
 let idCounter = 0;
 
 function nextId(prefix: string): string {
@@ -89,6 +93,84 @@ export function seedAssignments(examId: string, studentIds: string[]) {
   assignmentsByExam.set(examId, new Set(studentIds));
 }
 
+function attemptKey(userId: string, examId: string) {
+  return `${userId}:${examId}`;
+}
+
+/** Assign an exam (+ optional questions) to the test student for dashboard/taking flows. */
+export function seedStudentExam(
+  exam: ExamListItem,
+  questions: Question[] = [],
+  studentId: string = TEST_USERS.student.id,
+) {
+  examFixtures = [exam, ...examFixtures.filter((e) => e.id !== exam.id)];
+  seedQuestions(exam.id, questions);
+  seedAssignments(exam.id, [studentId]);
+}
+
+function gradeAttempt(examId: string, attempt: Attempt): AttemptResult {
+  const questions = questionsByExam.get(examId) ?? [];
+  const answerByQ = new Map(attempt.answers.map((a) => [a.questionId, a]));
+  let score = 0;
+  let correctCount = 0;
+  const breakdown = questions.map((q) => {
+    const ans = answerByQ.get(q.id);
+    const isCorrect = ans ? ans.value === q.correctAnswer : null;
+    const awarded = isCorrect ? q.points : 0;
+    if (isCorrect) {
+      score += q.points;
+      correctCount += 1;
+    }
+    return {
+      questionId: q.id,
+      points: q.points,
+      awardedPoints: awarded,
+      answered: ans !== undefined,
+      value: ans?.value ?? null,
+      isCorrect,
+      correctAnswer: q.correctAnswer,
+    };
+  });
+  const maxScore = questions.reduce((s, q) => s + q.points, 0);
+  return {
+    attemptId: attempt.id,
+    examId,
+    submittedAt: attempt.submittedAt,
+    score,
+    maxScore,
+    percentage: maxScore > 0 ? Math.round((score / maxScore) * 10000) / 100 : 0,
+    totalQuestions: questions.length,
+    correctCount,
+    breakdown,
+  };
+}
+
+function buildStudentDashboard(): StudentDashboardExam[] {
+  if (!activeSession || activeSession.role !== "student") return [];
+  const studentId = activeSession.id;
+  const now = Date.now();
+  return examFixtures
+    .filter((exam) => assignmentsByExam.get(exam.id)?.has(studentId))
+    .map((exam) => {
+      const att = attemptsByKey.get(attemptKey(studentId, exam.id));
+      const status = !att ? "not_started" : att.submittedAt ? "submitted" : "in_progress";
+      const isOpen = !exam.startsAt || now >= new Date(exam.startsAt).getTime();
+      return {
+        id: exam.id,
+        title: exam.title,
+        description: exam.description,
+        durationMin: exam.durationMin,
+        startsAt: exam.startsAt,
+        totalQuestions: exam._count.questions,
+        isOpen,
+        startsInMs:
+          exam.startsAt && !isOpen ? new Date(exam.startsAt).getTime() - now : null,
+        attemptStatus: status as StudentDashboardExam["attemptStatus"],
+        score: att?.submittedAt ? att.score : null,
+      };
+    });
+}
+
 function syncAssignmentCount(examId: string) {
   const exam = examFixtures.find((e) => e.id === examId);
   if (exam) exam._count = { ...exam._count, assignments: assignmentsByExam.get(examId)?.size ?? 0 };
@@ -105,6 +187,7 @@ export function resetSession() {
   questionsByExam.clear();
   studentFixtures = [];
   assignmentsByExam.clear();
+  attemptsByKey.clear();
   idCounter = 0;
   capturedRequests.questionCreate.length = 0;
   for (const key of Object.keys(requestCredentials)) {
@@ -138,6 +221,11 @@ function visibleExams(): ExamListItem[] {
   if (activeSession.role === "admin") return examFixtures;
   if (activeSession.role === "teacher") {
     return examFixtures.filter((exam) => exam.createdById === activeSession!.id);
+  }
+  if (activeSession.role === "student") {
+    return examFixtures.filter((exam) =>
+      assignmentsByExam.get(exam.id)?.has(activeSession!.id),
+    );
   }
   return [];
 }
@@ -219,10 +307,18 @@ export const handlers = [
 
     const exam = visibleExams().find((e) => e.id === params.examId);
     if (!exam) {
-      // Same 404 for missing-or-unauthorized, mirroring the backend.
       return HttpResponse.json({ error: "Exam not found" }, { status: 404 });
     }
-    return HttpResponse.json({ exam });
+
+    const questions = (questionsByExam.get(exam.id as string) ?? []).map((q) => {
+      if (activeSession!.role === "student") {
+        const { correctAnswer: _c, ...rest } = q;
+        return rest;
+      }
+      return q;
+    });
+
+    return HttpResponse.json({ exam: { ...exam, questions } });
   }),
 
   http.post(`${API}/exams`, async ({ request }) => {
@@ -396,6 +492,121 @@ export const handlers = [
       users: { admins: 1, teachers: 3, students: 25 },
       exams: examFixtures.length,
     });
+  }),
+
+  http.get(`${API}/student/dashboard`, () => {
+    if (!activeSession || activeSession.role !== "student") {
+      return HttpResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    return HttpResponse.json({ exams: buildStudentDashboard() });
+  }),
+
+  http.post(`${API}/exams/:examId/attempt`, ({ params }) => {
+    if (!activeSession || activeSession.role !== "student") {
+      return HttpResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    const examId = params.examId as string;
+    const exam = visibleExams().find((e) => e.id === examId);
+    if (!exam) return HttpResponse.json({ error: "Not found" }, { status: 404 });
+
+    if (exam.startsAt && Date.now() < new Date(exam.startsAt).getTime()) {
+      return HttpResponse.json({ error: "Not started" }, { status: 403 });
+    }
+
+    const key = attemptKey(activeSession.id, examId);
+    const existing = attemptsByKey.get(key);
+    if (existing?.submittedAt) {
+      return HttpResponse.json({ error: "Already submitted" }, { status: 409 });
+    }
+    if (existing) {
+      return HttpResponse.json({ attempt: existing });
+    }
+
+    const startedAt = new Date().toISOString();
+    const deadline = new Date(
+      Date.now() + exam.durationMin * 60_000,
+    ).toISOString();
+    const attempt: Attempt = {
+      id: nextId("att"),
+      examId,
+      startedAt,
+      deadline,
+      submittedAt: null,
+      score: null,
+      remainingMs: exam.durationMin * 60_000,
+      answers: [],
+    };
+    attemptsByKey.set(key, attempt);
+    return HttpResponse.json({ attempt }, { status: 201 });
+  }),
+
+  http.get(`${API}/exams/:examId/attempt`, ({ params }) => {
+    if (!activeSession || activeSession.role !== "student") {
+      return HttpResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    const key = attemptKey(activeSession.id, params.examId as string);
+    const attempt = attemptsByKey.get(key);
+    if (!attempt) return HttpResponse.json({ error: "Not found" }, { status: 404 });
+    return HttpResponse.json({ attempt });
+  }),
+
+  http.put(`${API}/exams/:examId/attempt/answers/:questionId`, async ({ params, request }) => {
+    if (!activeSession || activeSession.role !== "student") {
+      return HttpResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    const key = attemptKey(activeSession.id, params.examId as string);
+    const attempt = attemptsByKey.get(key);
+    if (!attempt || attempt.submittedAt) {
+      return HttpResponse.json({ error: "Conflict" }, { status: 409 });
+    }
+    const { value } = (await request.json()) as { value: string };
+    const questionId = params.questionId as string;
+    const answers = [...attempt.answers];
+    const idx = answers.findIndex((a) => a.questionId === questionId);
+    if (idx >= 0) answers[idx] = { questionId, value };
+    else answers.push({ questionId, value });
+    attemptsByKey.set(key, { ...attempt, answers });
+    return HttpResponse.json({ answer: { questionId, value } });
+  }),
+
+  http.post(`${API}/exams/:examId/attempt/submit`, ({ params }) => {
+    if (!activeSession || activeSession.role !== "student") {
+      return HttpResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    const examId = params.examId as string;
+    const key = attemptKey(activeSession.id, examId);
+    const attempt = attemptsByKey.get(key);
+    if (!attempt) return HttpResponse.json({ error: "Not found" }, { status: 404 });
+    if (attempt.submittedAt) {
+      return HttpResponse.json({ attempt });
+    }
+    const result = gradeAttempt(examId, attempt);
+    const submitted: Attempt = {
+      ...attempt,
+      submittedAt: new Date().toISOString(),
+      score: result.score,
+      remainingMs: 0,
+      answers: attempt.answers.map((a) => {
+        const q = (questionsByExam.get(examId) ?? []).find((x) => x.id === a.questionId);
+        return { ...a, isCorrect: q ? a.value === q.correctAnswer : false };
+      }),
+    };
+    attemptsByKey.set(key, submitted);
+    return HttpResponse.json({ attempt: submitted });
+  }),
+
+  http.get(`${API}/exams/:examId/attempt/result`, ({ params }) => {
+    if (!activeSession || activeSession.role !== "student") {
+      return HttpResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    const examId = params.examId as string;
+    const key = attemptKey(activeSession.id, examId);
+    const attempt = attemptsByKey.get(key);
+    if (!attempt) return HttpResponse.json({ error: "Not found" }, { status: 404 });
+    if (!attempt.submittedAt) {
+      return HttpResponse.json({ error: "Not submitted" }, { status: 409 });
+    }
+    return HttpResponse.json({ result: gradeAttempt(examId, attempt) });
   }),
 ];
 

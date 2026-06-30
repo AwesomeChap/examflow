@@ -149,6 +149,7 @@ type ResultAttempt = {
 type ResultQuestion = {
   id: string;
   points: number;
+  correctAnswer: string;
 };
 
 /**
@@ -180,6 +181,7 @@ export function buildAttemptResult(
       answered: answer !== undefined,
       value: answer?.value ?? null,
       isCorrect,
+      correctAnswer: q.correctAnswer,
     };
   });
 

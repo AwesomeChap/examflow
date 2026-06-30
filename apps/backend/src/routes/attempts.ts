@@ -166,7 +166,7 @@ attemptsRouter.get("/result", async (req: Request, res: Response) => {
     prisma.question.findMany({
       where: { examId: exam.id },
       orderBy: { order: "asc" },
-      select: { id: true, points: true },
+      select: { id: true, points: true, correctAnswer: true },
     }),
     listAnswers(current.id),
   ]);
