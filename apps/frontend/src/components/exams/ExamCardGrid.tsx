@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useCloneExam } from "../../hooks/useCloneExam";
-import { useGetExamsQuery } from "../../store/examsApi";
+import { useToast } from "../../hooks/useToast";
+import { useDeleteExamMutation, useGetExamsQuery } from "../../store/examsApi";
 import { Pagination } from "../ui/Pagination";
 import { ExamCard } from "./ExamCard";
 
@@ -19,6 +20,24 @@ export function ExamCardGrid({
   const [page, setPage] = useState(1);
   const { data, isLoading, isError, isFetching } = useGetExamsQuery({ page, pageSize });
   const { clone, cloningId, error: cloneError } = useCloneExam();
+  const { notify } = useToast();
+  const [deleteExam] = useDeleteExamMutation();
+  const [discardingId, setDiscardingId] = useState<string | null>(null);
+
+  const handleDiscard = async (examId: string) => {
+    const isDraft = data?.items.find((e) => e.id === examId)?.status === "draft";
+    const verb = isDraft ? "Discard" : "Delete";
+    if (!window.confirm(`${verb} this exam? This cannot be undone.`)) return;
+    setDiscardingId(examId);
+    try {
+      await deleteExam(examId).unwrap();
+      notify({ message: isDraft ? "Draft discarded." : "Exam deleted.", variant: "info" });
+    } catch {
+      notify({ message: `Could not ${verb.toLowerCase()} the exam.`, variant: "error" });
+    } finally {
+      setDiscardingId(null);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -59,6 +78,8 @@ export function ExamCardGrid({
               showCreator={showCreator}
               onClone={clone}
               cloning={cloningId === exam.id}
+              onDiscard={handleDiscard}
+              discarding={discardingId === exam.id}
             />
           </li>
         ))}

@@ -51,6 +51,9 @@ let activeSession: User | null = null;
 /** Records the `credentials` mode of the most recent request per path. */
 export const requestCredentials: Record<string, RequestCredentials> = {};
 
+/** Captured request payloads, for asserting exactly what the client sent. */
+export const capturedRequests: { questionCreate: unknown[] } = { questionCreate: [] };
+
 export function seedSession(user: User | null) {
   activeSession = user;
 }
@@ -103,6 +106,7 @@ export function resetSession() {
   studentFixtures = [];
   assignmentsByExam.clear();
   idCounter = 0;
+  capturedRequests.questionCreate.length = 0;
   for (const key of Object.keys(requestCredentials)) {
     delete requestCredentials[key];
   }
@@ -296,6 +300,7 @@ export const handlers = [
     }
     const examId = params.examId as string;
     const body = (await request.json()) as Omit<Question, "id" | "examId" | "order">;
+    capturedRequests.questionCreate.push(body);
     const existing = questionsByExam.get(examId) ?? [];
     const question: Question = {
       id: nextId("q"),

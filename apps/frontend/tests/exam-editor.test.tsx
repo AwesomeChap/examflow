@@ -1,10 +1,12 @@
 import { screen, waitFor } from "@testing-library/react";
+import type { UserEvent } from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import type { Question } from "../src/types/question";
 import type { Student } from "../src/types/student";
 import { renderApp } from "./render";
 import {
   TEST_USERS,
+  capturedRequests,
   makeExam,
   seedExams,
   seedQuestions,
@@ -144,5 +146,111 @@ describe("exam editor (Medium-style)", () => {
 
     expect(await screen.findByText(/already has results/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /clone exam/i })).toBeInTheDocument();
+  });
+});
+
+/** Opens the add-question form for the given type and waits for the field. */
+async function openAddForm(user: UserEvent, type: "mcq" | "true_false") {
+  await screen.findByDisplayValue("My Exam");
+  await user.click(screen.getByRole("button", { name: /add a question/i }));
+  await user.click(
+    screen.getByRole("menuitem", { name: type === "mcq" ? /multiple choice/i : /true \/ false/i }),
+  );
+  await screen.findByLabelText("Question");
+}
+
+describe("exam editor — validation, options, and payload", () => {
+  it("adds and removes MCQ option fields (focusing the new one)", async () => {
+    seedTeacherExam();
+    const { user } = renderApp("/exam/e1/edit");
+    await openAddForm(user, "mcq");
+
+    // Starts with two options, no third.
+    expect(screen.getByLabelText("Option 1")).toBeInTheDocument();
+    expect(screen.getByLabelText("Option 2")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Option 3")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /add option/i }));
+
+    // The newly added option appears and is focused.
+    const third = await screen.findByLabelText("Option 3");
+    expect(third).toHaveFocus();
+
+    await user.click(screen.getByRole("button", { name: /remove option 3/i }));
+    expect(screen.queryByLabelText("Option 3")).not.toBeInTheDocument();
+  });
+
+  it("shows a validation error and blocks submit when an option is blank", async () => {
+    seedTeacherExam();
+    const { user } = renderApp("/exam/e1/edit");
+    await openAddForm(user, "mcq");
+
+    await user.type(screen.getByLabelText("Question"), "Capital of France?");
+    await user.type(screen.getByLabelText("Option 1"), "Paris");
+    // Option 2 left blank, then mark option 1 correct and submit.
+    await user.click(screen.getByLabelText("Mark option 1 as correct"));
+    await user.click(screen.getByRole("button", { name: /^add question$/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/all options must be filled/i);
+    // Nothing was sent and no question was added.
+    expect(capturedRequests.questionCreate).toHaveLength(0);
+    expect(screen.queryByText(/questions \(1\)/i)).not.toBeInTheDocument();
+    // Form is still open for correction.
+    expect(screen.getByLabelText("Question")).toBeInTheDocument();
+  });
+
+  it("does not submit a question with empty text", async () => {
+    seedTeacherExam();
+    const { user } = renderApp("/exam/e1/edit");
+    await openAddForm(user, "mcq");
+
+    await user.type(screen.getByLabelText("Option 1"), "Paris");
+    await user.type(screen.getByLabelText("Option 2"), "Berlin");
+    await user.click(screen.getByLabelText("Mark option 1 as correct"));
+    // Question text intentionally left empty.
+    await user.click(screen.getByRole("button", { name: /^add question$/i }));
+
+    expect(capturedRequests.questionCreate).toHaveLength(0);
+    // Still on the form (submission blocked).
+    expect(screen.getByLabelText("Question")).toBeInTheDocument();
+  });
+
+  it("sends the correct MCQ payload to the backend", async () => {
+    seedTeacherExam();
+    const { user } = renderApp("/exam/e1/edit");
+    await openAddForm(user, "mcq");
+
+    await user.type(screen.getByLabelText("Question"), "Capital of France?");
+    await user.type(screen.getByLabelText("Option 1"), "Paris");
+    await user.type(screen.getByLabelText("Option 2"), "Berlin");
+    await user.click(screen.getByLabelText("Mark option 2 as correct"));
+    await user.click(screen.getByRole("button", { name: /^add question$/i }));
+
+    await screen.findByText("Capital of France?");
+    expect(capturedRequests.questionCreate.at(-1)).toEqual({
+      type: "mcq",
+      text: "Capital of France?",
+      options: ["Paris", "Berlin"],
+      correctAnswer: "Berlin",
+      points: 1,
+    });
+  });
+
+  it("sends the correct true/false payload to the backend", async () => {
+    seedTeacherExam();
+    const { user } = renderApp("/exam/e1/edit");
+    await openAddForm(user, "true_false");
+
+    await user.type(screen.getByLabelText("Question"), "The sky is green.");
+    await user.click(screen.getByRole("radio", { name: "False" }));
+    await user.click(screen.getByRole("button", { name: /^add question$/i }));
+
+    await screen.findByText("The sky is green.");
+    expect(capturedRequests.questionCreate.at(-1)).toEqual({
+      type: "true_false",
+      text: "The sky is green.",
+      correctAnswer: "false",
+      points: 1,
+    });
   });
 });

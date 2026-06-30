@@ -5,15 +5,25 @@ import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { ExamStatusBadge } from "./ExamStatusBadge";
 
+const TINT = {
+  amber:
+    "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300 dark:hover:bg-amber-500/20",
+  blue: "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300 dark:hover:bg-blue-500/20",
+  red: "border-red-200 bg-red-50 text-red-700 hover:bg-red-100 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300 dark:hover:bg-red-500/20",
+} as const;
+
 type ExamCardProps = {
   exam: ExamListItem;
   showCreator?: boolean;
   onClone: (examId: string) => void;
   cloning?: boolean;
+  onDiscard?: (examId: string) => void;
+  discarding?: boolean;
 };
 
-export function ExamCard({ exam, showCreator = false, onClone, cloning }: ExamCardProps) {
+export function ExamCard({ exam, showCreator = false, onClone, cloning, onDiscard, discarding }: ExamCardProps) {
   const editable = isExamEditable(exam);
+  const isDraft = exam.status === "draft";
   const { questions, attempts, assignments } = exam._count;
 
   return (
@@ -62,13 +72,13 @@ export function ExamCard({ exam, showCreator = false, onClone, cloning }: ExamCa
 
       <div className="mt-auto flex flex-wrap items-center gap-2">
         <Link to={`/exam/${exam.id}/details`}>
-          <Button variant="secondary" size="sm">
+          <Button variant="secondary" size="sm" className={TINT.amber}>
             Analytics
           </Button>
         </Link>
         {editable && (
           <Link to={`/exam/${exam.id}/edit`}>
-            <Button variant="secondary" size="sm">
+            <Button variant="secondary" size="sm" className={TINT.blue}>
               Edit
             </Button>
           </Link>
@@ -76,6 +86,17 @@ export function ExamCard({ exam, showCreator = false, onClone, cloning }: ExamCa
         <Button variant="secondary" size="sm" onClick={() => onClone(exam.id)} disabled={cloning}>
           {cloning ? "Cloning…" : "Clone"}
         </Button>
+        {onDiscard && (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => onDiscard(exam.id)}
+            disabled={discarding}
+            className={TINT.red}
+          >
+            {discarding ? (isDraft ? "Discarding…" : "Deleting…") : isDraft ? "Discard" : "Delete"}
+          </Button>
+        )}
         {!editable && <span className="ml-auto text-xs text-slate-400">Locked</span>}
       </div>
     </Card>
