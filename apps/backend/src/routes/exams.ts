@@ -55,6 +55,7 @@ examsRouter.get("/:examId", async (req: Request, res: Response) => {
     include: {
       createdBy: { select: publicUserSelect },
       questions: { orderBy: { order: "asc" } },
+      _count: { select: { questions: true, attempts: true, assignments: true } },
     },
   });
 

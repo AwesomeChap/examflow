@@ -13,34 +13,31 @@ function nav() {
 }
 
 describe("role-based navigation visibility", () => {
-  it("shows the admin Dashboard and Manage Exams", async () => {
+  it("shows the admin Dashboard and Create Exam", async () => {
     seedSession(toPublic("admin"));
     renderApp("/dashboard");
 
     await screen.findByText("admin dashboard");
     expect(nav().getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
-    expect(nav().getByRole("link", { name: "Manage Exams" })).toBeInTheDocument();
-    expect(nav().queryByRole("link", { name: "My Exams" })).not.toBeInTheDocument();
+    expect(nav().getByRole("link", { name: "Create Exam" })).toBeInTheDocument();
   });
 
-  it("shows a teacher Dashboard and My Exams (not the admin label)", async () => {
+  it("shows a teacher Dashboard and Create Exam", async () => {
     seedSession(toPublic("teacher"));
     renderApp("/dashboard");
 
     await screen.findByText("teacher dashboard");
     expect(nav().getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
-    expect(nav().getByRole("link", { name: "My Exams" })).toBeInTheDocument();
-    expect(nav().queryByRole("link", { name: "Manage Exams" })).not.toBeInTheDocument();
+    expect(nav().getByRole("link", { name: "Create Exam" })).toBeInTheDocument();
   });
 
-  it("shows a student only the dashboard (no exam management)", async () => {
+  it("shows a student only the dashboard (no exam authoring)", async () => {
     seedSession(toPublic("student"));
     renderApp("/dashboard");
 
     await screen.findByText("student dashboard");
     expect(nav().getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
-    expect(nav().queryByRole("link", { name: "Manage Exams" })).not.toBeInTheDocument();
-    expect(nav().queryByRole("link", { name: "My Exams" })).not.toBeInTheDocument();
+    expect(nav().queryByRole("link", { name: "Create Exam" })).not.toBeInTheDocument();
   });
 
   it("hides navigation entirely when signed out", async () => {

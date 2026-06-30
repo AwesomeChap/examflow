@@ -1,6 +1,9 @@
 import { Link, useParams } from "react-router-dom";
 import { ExamStatusBadge } from "../components/exams/ExamStatusBadge";
+import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
+import { useCloneExam } from "../hooks/useCloneExam";
+import { isExamEditable } from "../lib/examRules";
 import { useGetExamQuery } from "../store/examsApi";
 
 function formatDateTime(value: string | null): string {
@@ -11,6 +14,7 @@ function formatDateTime(value: string | null): string {
 export function ExamDetailPage() {
   const { examId = "" } = useParams();
   const { data: exam, isLoading, isError } = useGetExamQuery(examId, { skip: !examId });
+  const { clone, cloningId } = useCloneExam();
 
   if (isLoading) {
     return (
@@ -26,25 +30,39 @@ export function ExamDetailPage() {
         <p role="alert" className="text-red-600 dark:text-red-400">
           Exam not found or you do not have access to it.
         </p>
-        <Link to="/exams" className="mt-3 inline-block text-blue-600 dark:text-blue-400">
-          Back to exams
+        <Link to="/dashboard" className="mt-3 inline-block text-blue-600 dark:text-blue-400">
+          Back to dashboard
         </Link>
       </div>
     );
   }
 
+  const editable = isExamEditable(exam);
+
   return (
     <section className="space-y-6">
       <div>
         <Link
-          to="/exams"
+          to="/dashboard"
           className="text-sm text-blue-600 hover:underline dark:text-blue-400"
         >
-          ← Back to exams
+          ← Back to dashboard
         </Link>
-        <div className="mt-2 flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-bold tracking-tight">{exam.title}</h1>
-          <ExamStatusBadge status={exam.status} />
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl font-bold tracking-tight">{exam.title}</h1>
+            <ExamStatusBadge status={exam.status} />
+          </div>
+          <div className="flex shrink-0 gap-2">
+            {editable && (
+              <Link to={`/exam/${exam.id}/edit`}>
+                <Button variant="secondary">Edit exam</Button>
+              </Link>
+            )}
+            <Button variant="secondary" onClick={() => clone(exam.id)} disabled={cloningId === exam.id}>
+              {cloningId === exam.id ? "Cloning…" : "Clone"}
+            </Button>
+          </div>
         </div>
         {exam.description && (
           <p className="mt-2 text-slate-600 dark:text-slate-400">{exam.description}</p>

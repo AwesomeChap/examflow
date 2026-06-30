@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth/useAuth";
+import { ExamCardGrid } from "../components/exams/ExamCardGrid";
 import { Button } from "../components/ui/Button";
 import { StatCard } from "../components/ui/StatCard";
 import { useGetAdminDashboardQuery } from "../store/adminApi";
@@ -11,32 +12,45 @@ const ROLE_SUMMARY: Record<UserRole, string> = {
   student: "View your scheduled exams and start them when they open.",
 };
 
+function CreateExamButton() {
+  return (
+    <Link to="/exams/new">
+      <Button>Create exam</Button>
+    </Link>
+  );
+}
+
 function AdminOverview() {
   const { data, isLoading } = useGetAdminDashboardQuery();
 
   return (
-    <div className="mt-8 space-y-5">
+    <div className="mt-8 space-y-8">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard label="Students" value={isLoading || !data ? "—" : data.users.students} />
         <StatCard label="Teachers" value={isLoading || !data ? "—" : data.users.teachers} />
         <StatCard label="Exams" value={isLoading || !data ? "—" : data.exams} />
       </div>
-      <div className="flex flex-wrap gap-3">
-        <Link to="/exams">
-          <Button>Manage Exams</Button>
-        </Link>
-      </div>
+
+      <section>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold">All exams</h2>
+          <CreateExamButton />
+        </div>
+        <ExamCardGrid showCreator emptyHint="No exams have been created yet." />
+      </section>
     </div>
   );
 }
 
 function TeacherOverview() {
   return (
-    <div className="mt-8">
-      <Link to="/exams">
-        <Button>View my exams</Button>
-      </Link>
-    </div>
+    <section className="mt-8">
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-lg font-semibold">My exams</h2>
+        <CreateExamButton />
+      </div>
+      <ExamCardGrid emptyHint="You haven’t created any exams yet." />
+    </section>
   );
 }
 

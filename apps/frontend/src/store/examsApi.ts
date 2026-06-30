@@ -1,4 +1,4 @@
-import type { ExamDetail, ExamListItem, Paginated } from "../types/exam";
+import type { Exam, ExamDetail, ExamListItem, ExamStatus, Paginated } from "../types/exam";
 import { api } from "./api";
 
 export type ExamListParams = {
@@ -12,6 +12,17 @@ type ExamListResponse = {
   page: number;
   pageSize: number;
 };
+
+export type CreateExamBody = {
+  title: string;
+  description?: string | null;
+  durationMin?: number;
+  status?: ExamStatus;
+  /** ISO string, or null for "available immediately". */
+  startsAt?: string | null;
+};
+
+export type UpdateExamBody = Partial<CreateExamBody>;
 
 export const examsApi = api.injectEndpoints({
   endpoints: (builder) => ({
@@ -40,7 +51,34 @@ export const examsApi = api.injectEndpoints({
       transformResponse: (response: { exam: ExamDetail }) => response.exam,
       providesTags: (_result, _error, examId) => [{ type: "Exam", id: examId }],
     }),
+
+    createExam: builder.mutation<Exam, CreateExamBody>({
+      query: (body) => ({ url: "/exams", method: "POST", body }),
+      transformResponse: (response: { exam: Exam }) => response.exam,
+      invalidatesTags: [{ type: "Exam", id: "LIST" }, "AdminDashboard"],
+    }),
+
+    updateExam: builder.mutation<Exam, { id: string; body: UpdateExamBody }>({
+      query: ({ id, body }) => ({ url: `/exams/${id}`, method: "PUT", body }),
+      transformResponse: (response: { exam: Exam }) => response.exam,
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "Exam", id },
+        { type: "Exam", id: "LIST" },
+      ],
+    }),
+
+    deleteExam: builder.mutation<void, string>({
+      query: (id) => ({ url: `/exams/${id}`, method: "DELETE" }),
+      invalidatesTags: [{ type: "Exam", id: "LIST" }, "AdminDashboard"],
+    }),
   }),
 });
 
-export const { useGetExamsQuery, useGetExamQuery } = examsApi;
+export const {
+  useGetExamsQuery,
+  useGetExamQuery,
+  useLazyGetExamQuery,
+  useCreateExamMutation,
+  useUpdateExamMutation,
+  useDeleteExamMutation,
+} = examsApi;

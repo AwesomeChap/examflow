@@ -5,6 +5,7 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App.tsx";
 import { AuthProvider } from "./auth/AuthProvider.tsx";
 import { ThemeProvider } from "./context/ThemeProvider.tsx";
+import { ToastProvider } from "./context/ToastProvider.tsx";
 import { store } from "./store/store.ts";
 import "./index.css";
 
@@ -13,9 +14,11 @@ createRoot(document.getElementById("root")!).render(
     <Provider store={store}>
       <ThemeProvider>
         <BrowserRouter>
-          <AuthProvider>
-            <App />
-          </AuthProvider>
+          <ToastProvider>
+            <AuthProvider>
+              <App />
+            </AuthProvider>
+          </ToastProvider>
         </BrowserRouter>
       </ThemeProvider>
     </Provider>

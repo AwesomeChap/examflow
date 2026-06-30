@@ -108,6 +108,13 @@ export const questionPatchSchema = z
 export type QuestionCreateInput = z.infer<typeof questionCreateSchema>;
 export type QuestionPatchInput = z.infer<typeof questionPatchSchema>;
 
+// Reorder: the full set of question ids for an exam, in the desired order.
+export const questionReorderSchema = z.object({
+  orderedIds: z.array(z.string().trim().min(1)).min(1).max(1000),
+});
+
+export type QuestionReorderInput = z.infer<typeof questionReorderSchema>;
+
 // ---------- Exam assignments ----------
 
 export const assignStudentsSchema = z.object({

@@ -29,9 +29,10 @@ export type ExamListItem = Exam & {
   _count: ExamCounts;
 };
 
-/** Single-exam detail (questions omitted here; analytics is a future addition). */
+/** Single-exam detail (with creator + aggregate counts for edit-locking). */
 export type ExamDetail = Exam & {
   createdBy: ExamCreator;
+  _count: ExamCounts;
 };
 
 export type Paginated<T> = {

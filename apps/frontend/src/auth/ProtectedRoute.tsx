@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import type { UserRole } from "../types/user";
 import { useAuth } from "./useAuth";
 
@@ -11,7 +11,6 @@ type ProtectedRouteProps = {
 
 export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
   const { user, status } = useAuth();
-  const location = useLocation();
 
   if (status === "loading") {
     return (
@@ -22,8 +21,7 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
   }
 
   if (status === "unauthenticated" || !user) {
-    // Remember where the user wanted to go so we can send them back after login.
-    return <Navigate to="/login" replace state={{ from: location }} />;
+    return <Navigate to="/login" replace />;
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {

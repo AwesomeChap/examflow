@@ -1,7 +1,7 @@
 import { screen, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { renderApp } from "./render";
-import { TEST_USERS, seedSession } from "./server";
+import { TEST_USERS, makeExam, seedExams, seedSession } from "./server";
 
 function toPublic(role: "admin" | "teacher" | "student") {
   const { password: _password, ...user } = TEST_USERS[role];
@@ -17,7 +17,7 @@ describe("protected routes", () => {
   });
 
   it("redirects unauthenticated access to a staff page to /login", async () => {
-    renderApp("/exams");
+    renderApp("/exams/new");
 
     expect(await screen.findByRole("button", { name: /sign in/i })).toBeInTheDocument();
   });
@@ -31,18 +31,20 @@ describe("protected routes", () => {
 
   it("keeps a staff user with the right role on a role-restricted page", async () => {
     seedSession(toPublic("admin"));
-    renderApp("/exams");
+    seedExams([makeExam({ id: "e1", title: "Owned", createdById: TEST_USERS.teacher.id })]);
+    renderApp("/exam/e1/edit");
 
-    expect(await screen.findByRole("heading", { name: /manage exams/i })).toBeInTheDocument();
+    // Editor loads (the title field is prefilled with the exam title).
+    expect(await screen.findByDisplayValue("Owned")).toBeInTheDocument();
   });
 
   it("redirects a student away from a staff-only page to their dashboard", async () => {
     seedSession(toPublic("student"));
-    renderApp("/exams");
+    seedExams([makeExam({ id: "e1", createdById: TEST_USERS.teacher.id })]);
+    renderApp("/exam/e1/edit");
 
     // Student is signed in but not staff: bounced to their dashboard.
     expect(await screen.findByText("student dashboard")).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: /manage exams/i })).not.toBeInTheDocument();
   });
 
   it("returns a signed-in user from /login to the dashboard", async () => {

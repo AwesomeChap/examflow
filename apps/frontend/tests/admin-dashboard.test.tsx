@@ -9,9 +9,12 @@ function toPublic(role: "admin" | "teacher" | "student") {
 }
 
 describe("admin dashboard overview", () => {
-  it("shows user/exam counts and a Manage Exams action", async () => {
+  it("shows user/exam counts and the exams as cards", async () => {
     seedSession(toPublic("admin"));
-    seedExams([makeExam({ id: "e1" }), makeExam({ id: "e2" })]);
+    seedExams([
+      makeExam({ id: "e1", title: "Algebra" }),
+      makeExam({ id: "e2", title: "Geometry" }),
+    ]);
     renderApp("/dashboard");
 
     await screen.findByText("admin dashboard");
@@ -20,22 +23,23 @@ describe("admin dashboard overview", () => {
     expect(await screen.findByText("25")).toBeInTheDocument();
     expect(screen.getByText("Students")).toBeInTheDocument();
     expect(screen.getByText("Teachers")).toBeInTheDocument();
-    expect(screen.getByText("Exams")).toBeInTheDocument();
 
-    // Scope to the page body (the nav also has a Manage Exams link).
+    // Every exam is rendered as a card.
     const main = within(screen.getByRole("main"));
-    expect(main.getByRole("link", { name: /manage exams/i })).toBeInTheDocument();
+    expect(await main.findByRole("link", { name: "Algebra" })).toBeInTheDocument();
+    expect(main.getByRole("link", { name: "Geometry" })).toBeInTheDocument();
+    expect(main.getByRole("link", { name: /create exam/i })).toBeInTheDocument();
   });
 
-  it("navigates to the exam list from the Manage Exams action", async () => {
+  it("navigates to a chosen exam's analytics from its card", async () => {
     seedSession(toPublic("admin"));
     seedExams([makeExam({ id: "e1", title: "Some Exam", createdById: TEST_USERS.teacher.id })]);
     const { user } = renderApp("/dashboard");
 
     await screen.findByText("admin dashboard");
     const main = within(screen.getByRole("main"));
-    await user.click(main.getByRole("link", { name: /manage exams/i }));
+    await user.click(await main.findByRole("link", { name: "Some Exam" }));
 
-    expect(await screen.findByRole("heading", { name: /manage exams/i })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /analytics/i })).toBeInTheDocument();
   });
 });

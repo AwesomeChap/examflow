@@ -6,6 +6,7 @@ import { MemoryRouter } from "react-router-dom";
 import App from "../src/App";
 import { AuthProvider } from "../src/auth/AuthProvider";
 import { ThemeProvider } from "../src/context/ThemeProvider";
+import { ToastProvider } from "../src/context/ToastProvider";
 import { createStore } from "../src/store/store";
 
 type UserEventInstance = ReturnType<typeof userEvent.setup>;
@@ -36,9 +37,11 @@ export function renderApp(route = "/") {
     <Provider store={store}>
       <ThemeProvider>
         <MemoryRouter initialEntries={[route]}>
-          <AuthProvider>
-            <App />
-          </AuthProvider>
+          <ToastProvider>
+            <AuthProvider>
+              <App />
+            </AuthProvider>
+          </ToastProvider>
         </MemoryRouter>
       </ThemeProvider>
     </Provider>,
@@ -54,7 +57,9 @@ export function renderWithProviders(ui: ReactElement, route = "/") {
     <Provider store={store}>
       <ThemeProvider>
         <MemoryRouter initialEntries={[route]}>
-          <AuthProvider>{ui}</AuthProvider>
+          <ToastProvider>
+            <AuthProvider>{ui}</AuthProvider>
+          </ToastProvider>
         </MemoryRouter>
       </ThemeProvider>
     </Provider>,

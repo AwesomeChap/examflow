@@ -1,9 +1,10 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { Layout } from "./components/Layout";
+import { CreateExamPage } from "./pages/CreateExamPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { ExamDetailPage } from "./pages/ExamDetailPage";
-import { ExamListPage } from "./pages/ExamListPage";
+import { ExamEditorPage } from "./pages/ExamEditorPage";
 import { LoginPage } from "./pages/LoginPage";
 
 const STAFF = ["admin", "teacher"] as const;
@@ -23,10 +24,18 @@ export default function App() {
         <Route path="/dashboard" element={<DashboardPage />} />
 
         <Route
-          path="/exams"
+          path="/exams/new"
           element={
             <ProtectedRoute allowedRoles={[...STAFF]}>
-              <ExamListPage />
+              <CreateExamPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/exam/:examId/edit"
+          element={
+            <ProtectedRoute allowedRoles={[...STAFF]}>
+              <ExamEditorPage />
             </ProtectedRoute>
           }
         />

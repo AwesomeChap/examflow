@@ -1,5 +1,6 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/useAuth";
+import { useToast } from "../hooks/useToast";
 import { cn } from "../lib/cn";
 import type { UserRole } from "../types/user";
 import { Logo } from "./Logo";
@@ -16,13 +17,13 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { to: "/dashboard", label: "Dashboard" },
-  { to: "/exams", label: "Manage Exams", roles: ["admin"] },
-  { to: "/exams", label: "My Exams", roles: ["teacher"] },
+  { to: "/exams/new", label: "Create Exam", roles: ["admin", "teacher"] },
 ];
 
 export function Navigation() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { notify } = useToast();
 
   if (!user) return null;
 
@@ -30,6 +31,7 @@ export function Navigation() {
 
   const handleLogout = async () => {
     await logout();
+    notify({ message: "You have been signed out.", variant: "info" });
     navigate("/login", { replace: true });
   };
 

@@ -12,6 +12,7 @@ import { loadExam, requireExamWrite } from "../middleware/exam.js";
 import {
   questionCreateSchema,
   questionPatchSchema,
+  questionReorderSchema,
 } from "../validation/schemas.js";
 
 // mergeParams lets us read :examId from the parent router.
@@ -96,6 +97,52 @@ questionsRouter.post(
       if (handleKnownPrismaError(error, res)) return;
       throw error;
     }
+  },
+);
+
+// Reorder all questions of an exam (admin or owning teacher). The body must
+// list every question id exactly once. Persisted in two phases to avoid
+// tripping the @@unique([examId, order]) constraint mid-update.
+questionsRouter.post(
+  "/reorder",
+  requireStaff,
+  requireExamWrite,
+  async (req: Request, res: Response) => {
+    const examId = req.exam!.id;
+    const data = parseOr400(questionReorderSchema, req.body, res);
+    if (!data) return;
+
+    const existing = await prisma.question.findMany({
+      where: { examId },
+      select: { id: true },
+    });
+    const existingIds = new Set(existing.map((q) => q.id));
+    const ids = data.orderedIds;
+
+    const isPermutation =
+      ids.length === existing.length &&
+      new Set(ids).size === ids.length &&
+      ids.every((id) => existingIds.has(id));
+    if (!isPermutation) {
+      sendError(res, 400, "orderedIds must list each question exactly once");
+      return;
+    }
+
+    const OFFSET = 1_000_000;
+    await prisma.$transaction([
+      ...ids.map((id, i) =>
+        prisma.question.update({ where: { id }, data: { order: OFFSET + i } }),
+      ),
+      ...ids.map((id, i) =>
+        prisma.question.update({ where: { id }, data: { order: i + 1 } }),
+      ),
+    ]);
+
+    const questions = await prisma.question.findMany({
+      where: { examId },
+      orderBy: { order: "asc" },
+    });
+    res.json({ questions });
   },
 );
 

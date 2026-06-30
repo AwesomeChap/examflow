@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from "react";
-import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { ApiError } from "../api/client";
 import { useAuth } from "../auth/useAuth";
+import { useToast } from "../hooks/useToast";
 import { Logo } from "../components/Logo";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { Button } from "../components/ui/Button";
@@ -10,8 +11,6 @@ import { SegmentedControl, type SegmentOption } from "../components/ui/Segmented
 import { TextField } from "../components/ui/TextField";
 
 type Audience = "student" | "staff";
-
-type LocationState = { from?: { pathname: string } } | null;
 
 const AUDIENCE_OPTIONS: SegmentOption<Audience>[] = [
   { id: "student", label: "Student" },
@@ -39,7 +38,7 @@ const AUDIENCE_FIELD: Record<
 export function LoginPage() {
   const { status, login } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
+  const { notify } = useToast();
 
   const [audience, setAudience] = useState<Audience>("student");
   const [identifier, setIdentifier] = useState("");
@@ -47,7 +46,10 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const redirectTo = (location.state as LocationState)?.from?.pathname ?? "/dashboard";
+  // Always land on the dashboard after signing in. (Deliberately not honoring a
+  // prior "from" location so switching accounts never drops you on the previous
+  // user's page.)
+  const redirectTo = "/dashboard";
 
   // Already signed in (e.g. restored session): skip the form.
   if (status === "authenticated") {
@@ -67,7 +69,8 @@ export function LoginPage() {
     setError(null);
     setSubmitting(true);
     try {
-      await login({ identifier, password });
+      const account = await login({ identifier, password });
+      notify({ message: `Signed in as ${account.name}`, variant: "success" });
       navigate(redirectTo, { replace: true });
     } catch (err: unknown) {
       const message =
