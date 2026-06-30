@@ -6,6 +6,7 @@ import { adminRouter } from "./routes/admin.js";
 import { authRouter } from "./routes/auth.js";
 import { examsRouter } from "./routes/exams.js";
 import { meRouter } from "./routes/me.js";
+import { studentRouter } from "./routes/student.js";
 import { teacherRouter } from "./routes/teacher.js";
 
 export function createApp() {
@@ -22,6 +23,7 @@ export function createApp() {
   app.use("/me", meRouter);
   app.use("/admin", adminRouter);
   app.use("/teacher", teacherRouter);
+  app.use("/student", studentRouter);
   app.use("/exams", examsRouter);
 
   // JSON fallback for any unhandled error (Express 5 forwards async throws here).

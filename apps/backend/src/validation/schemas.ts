@@ -23,6 +23,8 @@ export const examCreateSchema = z.object({
   title: z.string().trim().min(1).max(200),
   description: z.string().trim().max(2000).nullish(),
   durationMin: z.number().int().positive().max(1440).optional(),
+  // Scheduled open time; null/omitted means the exam is available immediately.
+  startsAt: z.coerce.date().nullish(),
 });
 
 export const examUpdateSchema = z
@@ -30,6 +32,7 @@ export const examUpdateSchema = z
     title: z.string().trim().min(1).max(200).optional(),
     description: z.string().trim().max(2000).nullish(),
     durationMin: z.number().int().positive().max(1440).optional(),
+    startsAt: z.coerce.date().nullish(),
   })
   .refine((obj) => Object.keys(obj).length > 0, {
     message: "At least one field is required",

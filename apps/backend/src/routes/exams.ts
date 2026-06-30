@@ -68,6 +68,7 @@ examsRouter.post("/", requireStaff, async (req: Request, res: Response) => {
       title: data.title,
       description: data.description ?? null,
       durationMin: data.durationMin,
+      startsAt: data.startsAt ?? null,
       createdById: req.user!.sub,
     },
   });

@@ -37,6 +37,8 @@ model Exam {
   title       String
   description String?
   durationMin Int      @default(60)
+  // When the exam opens for students. Null means it is available immediately.
+  startsAt    DateTime?
   createdAt   DateTime @default(now())
 
   createdById String

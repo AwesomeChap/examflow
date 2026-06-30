@@ -26,6 +26,7 @@ type ExamContext = {
   id: string;
   createdById: string;
   durationMin: number;
+  startsAt: Date | null;
 };
 
 // Loads the exam (with its time limit) and confirms the student is allowed to
@@ -37,7 +38,12 @@ async function loadExamContext(
 ): Promise<ExamContext | null> {
   const exam = await prisma.exam.findUnique({
     where: { id: param(req, "examId") },
-    select: { id: true, createdById: true, durationMin: true },
+    select: {
+      id: true,
+      createdById: true,
+      durationMin: true,
+      startsAt: true,
+    },
   });
 
   if (!exam || !(await canReadExam(req.user!, exam))) {
@@ -61,6 +67,14 @@ function listAnswers(attemptId: string) {
 attemptsRouter.post("/", async (req: Request, res: Response) => {
   const exam = await loadExamContext(req, res);
   if (!exam) return;
+
+  // Scheduled exams cannot be started before their open time.
+  if (exam.startsAt && Date.now() < exam.startsAt.getTime()) {
+    sendError(res, 403, "Exam has not started yet", {
+      startsAt: exam.startsAt,
+    });
+    return;
+  }
 
   const userId = req.user!.sub;
   const existing = await findAttempt(exam.id, userId);
