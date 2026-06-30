@@ -18,6 +18,11 @@ enum QuestionType {
   true_false
 }
 
+enum ExamStatus {
+  draft
+  published
+}
+
 model User {
   id                  String   @id @default(cuid())
   name                String
@@ -33,13 +38,15 @@ model User {
 }
 
 model Exam {
-  id          String   @id @default(cuid())
+  id          String     @id @default(cuid())
   title       String
   description String?
-  durationMin Int      @default(60)
+  durationMin Int        @default(60)
+  // Draft exams are visible to staff only; publishing makes an exam live.
+  status      ExamStatus @default(draft)
   // When the exam opens for students. Null means it is available immediately.
   startsAt    DateTime?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime   @default(now())
 
   createdById String
   createdBy   User   @relation("ExamCreator", fields: [createdById], references: [id])

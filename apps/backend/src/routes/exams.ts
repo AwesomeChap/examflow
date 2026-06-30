@@ -8,7 +8,11 @@ import { prisma } from "../lib/prisma.js";
 import { parseOr400 } from "../lib/validation.js";
 import { requireAuth, requireStaff } from "../middleware/auth.js";
 import { loadExam, requireExamWrite } from "../middleware/exam.js";
-import { examCreateSchema, examUpdateSchema } from "../validation/schemas.js";
+import {
+  examCreateSchema,
+  examUpdateSchema,
+  paginationSchema,
+} from "../validation/schemas.js";
 import { analyticsRouter } from "./analytics.js";
 import { assignmentsRouter } from "./assignments.js";
 import { attemptsRouter } from "./attempts.js";
@@ -19,17 +23,29 @@ export const examsRouter = Router();
 // All exam routes require authentication; writes additionally require staff.
 examsRouter.use(requireAuth);
 
-// List exams visible to the current user (role-scoped).
+// List exams visible to the current user (role-scoped), paginated.
 examsRouter.get("/", async (req: Request, res: Response) => {
-  const exams = await prisma.exam.findMany({
-    where: examListFilter(req.user!),
-    orderBy: { createdAt: "desc" },
-    include: {
-      createdBy: { select: publicUserSelect },
-      _count: { select: { questions: true, attempts: true, assignments: true } },
-    },
-  });
-  res.json({ exams });
+  const pagination = parseOr400(paginationSchema, req.query, res);
+  if (!pagination) return;
+
+  const { page, pageSize } = pagination;
+  const where = examListFilter(req.user!);
+
+  const [total, exams] = await prisma.$transaction([
+    prisma.exam.count({ where }),
+    prisma.exam.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      include: {
+        createdBy: { select: publicUserSelect },
+        _count: { select: { questions: true, attempts: true, assignments: true } },
+      },
+    }),
+  ]);
+
+  res.json({ exams, total, page, pageSize });
 });
 
 // Get a single exam with its questions (if the user is authorized to see it).
@@ -68,6 +84,7 @@ examsRouter.post("/", requireStaff, async (req: Request, res: Response) => {
       title: data.title,
       description: data.description ?? null,
       durationMin: data.durationMin,
+      status: data.status,
       startsAt: data.startsAt ?? null,
       createdById: req.user!.sub,
     },

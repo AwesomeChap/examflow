@@ -19,10 +19,13 @@ export type LoginInput = z.infer<typeof loginSchema>;
 
 // ---------- Exam ----------
 
+export const examStatusSchema = z.enum(["draft", "published"]);
+
 export const examCreateSchema = z.object({
   title: z.string().trim().min(1).max(200),
   description: z.string().trim().max(2000).nullish(),
   durationMin: z.number().int().positive().max(1440).optional(),
+  status: examStatusSchema.optional(),
   // Scheduled open time; null/omitted means the exam is available immediately.
   startsAt: z.coerce.date().nullish(),
 });
@@ -32,6 +35,7 @@ export const examUpdateSchema = z
     title: z.string().trim().min(1).max(200).optional(),
     description: z.string().trim().max(2000).nullish(),
     durationMin: z.number().int().positive().max(1440).optional(),
+    status: examStatusSchema.optional(),
     startsAt: z.coerce.date().nullish(),
   })
   .refine((obj) => Object.keys(obj).length > 0, {
@@ -40,6 +44,17 @@ export const examUpdateSchema = z
 
 export type ExamCreateInput = z.infer<typeof examCreateSchema>;
 export type ExamUpdateInput = z.infer<typeof examUpdateSchema>;
+
+// ---------- Pagination ----------
+
+// Offset-based pagination shared by list endpoints. Query values arrive as
+// strings, so coerce and clamp to sane bounds.
+export const paginationSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(10),
+});
+
+export type PaginationInput = z.infer<typeof paginationSchema>;
 
 // ---------- Question ----------
 

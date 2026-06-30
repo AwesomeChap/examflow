@@ -16,9 +16,8 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { to: "/dashboard", label: "Dashboard" },
-  { to: "/admin", label: "Admin", roles: ["admin"] },
-  { to: "/teacher", label: "Teacher", roles: ["admin", "teacher"] },
-  { to: "/student", label: "Student", roles: ["student"] },
+  { to: "/exams", label: "Manage Exams", roles: ["admin"] },
+  { to: "/exams", label: "My Exams", roles: ["teacher"] },
 ];
 
 export function Navigation() {

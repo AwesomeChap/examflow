@@ -48,6 +48,28 @@ if (!window.matchMedia) {
   }));
 }
 
+// jsdom performs no layout, so @tanstack/react-virtual would see a 0-size
+// scroll container and render nothing. It measures via `offsetWidth/Height`, so
+// report a usable viewport there (plus a no-op ResizeObserver).
+for (const [prop, value] of [
+  ["offsetHeight", 600],
+  ["offsetWidth", 800],
+  ["clientHeight", 600],
+] as const) {
+  Object.defineProperty(HTMLElement.prototype, prop, {
+    configurable: true,
+    get() {
+      return value;
+    },
+  });
+}
+
+globalThis.ResizeObserver = class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 
 afterEach(() => {

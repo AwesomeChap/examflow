@@ -3,6 +3,11 @@ import { describe, expect, it } from "vitest";
 import { renderApp } from "./render";
 import { TEST_USERS, seedSession } from "./server";
 
+function toPublic(role: "admin" | "teacher" | "student") {
+  const { password: _password, ...user } = TEST_USERS[role];
+  return user;
+}
+
 describe("protected routes", () => {
   it("redirects an unauthenticated visitor from a protected route to /login", async () => {
     renderApp("/dashboard");
@@ -11,8 +16,8 @@ describe("protected routes", () => {
     expect(screen.queryByText(/welcome back,/i)).not.toBeInTheDocument();
   });
 
-  it("redirects unauthenticated access to a role page to /login", async () => {
-    renderApp("/admin");
+  it("redirects unauthenticated access to a staff page to /login", async () => {
+    renderApp("/exams");
 
     expect(await screen.findByRole("button", { name: /sign in/i })).toBeInTheDocument();
   });
@@ -24,20 +29,20 @@ describe("protected routes", () => {
     expect(await screen.findByText("admin dashboard")).toBeInTheDocument();
   });
 
-  it("keeps an authenticated user with the right role on a role-restricted page", async () => {
+  it("keeps a staff user with the right role on a role-restricted page", async () => {
     seedSession(toPublic("admin"));
-    renderApp("/admin");
+    renderApp("/exams");
 
-    expect(await screen.findByText(/admin console/i)).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /manage exams/i })).toBeInTheDocument();
   });
 
-  it("redirects an authenticated user away from a page their role cannot access", async () => {
+  it("redirects a student away from a staff-only page to their dashboard", async () => {
     seedSession(toPublic("student"));
-    renderApp("/admin");
+    renderApp("/exams");
 
-    // Student is signed in but not an admin: bounced to their dashboard.
+    // Student is signed in but not staff: bounced to their dashboard.
     expect(await screen.findByText("student dashboard")).toBeInTheDocument();
-    expect(screen.queryByText(/admin console/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /manage exams/i })).not.toBeInTheDocument();
   });
 
   it("returns a signed-in user from /login to the dashboard", async () => {
@@ -50,8 +55,3 @@ describe("protected routes", () => {
     );
   });
 });
-
-function toPublic(role: "admin" | "teacher" | "student") {
-  const { password: _password, ...user } = TEST_USERS[role];
-  return user;
-}

@@ -13,37 +13,34 @@ function nav() {
 }
 
 describe("role-based navigation visibility", () => {
-  it("shows the admin all sections except the student-only one", async () => {
+  it("shows the admin Dashboard and Manage Exams", async () => {
     seedSession(toPublic("admin"));
     renderApp("/dashboard");
 
     await screen.findByText("admin dashboard");
     expect(nav().getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
-    expect(nav().getByRole("link", { name: "Admin" })).toBeInTheDocument();
-    expect(nav().getByRole("link", { name: "Teacher" })).toBeInTheDocument();
-    expect(nav().queryByRole("link", { name: "Student" })).not.toBeInTheDocument();
+    expect(nav().getByRole("link", { name: "Manage Exams" })).toBeInTheDocument();
+    expect(nav().queryByRole("link", { name: "My Exams" })).not.toBeInTheDocument();
   });
 
-  it("shows a teacher the teacher section but hides admin and student sections", async () => {
+  it("shows a teacher Dashboard and My Exams (not the admin label)", async () => {
     seedSession(toPublic("teacher"));
     renderApp("/dashboard");
 
     await screen.findByText("teacher dashboard");
     expect(nav().getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
-    expect(nav().getByRole("link", { name: "Teacher" })).toBeInTheDocument();
-    expect(nav().queryByRole("link", { name: "Admin" })).not.toBeInTheDocument();
-    expect(nav().queryByRole("link", { name: "Student" })).not.toBeInTheDocument();
+    expect(nav().getByRole("link", { name: "My Exams" })).toBeInTheDocument();
+    expect(nav().queryByRole("link", { name: "Manage Exams" })).not.toBeInTheDocument();
   });
 
-  it("shows a student only the dashboard and student sections", async () => {
+  it("shows a student only the dashboard (no exam management)", async () => {
     seedSession(toPublic("student"));
     renderApp("/dashboard");
 
     await screen.findByText("student dashboard");
     expect(nav().getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
-    expect(nav().getByRole("link", { name: "Student" })).toBeInTheDocument();
-    expect(nav().queryByRole("link", { name: "Admin" })).not.toBeInTheDocument();
-    expect(nav().queryByRole("link", { name: "Teacher" })).not.toBeInTheDocument();
+    expect(nav().queryByRole("link", { name: "Manage Exams" })).not.toBeInTheDocument();
+    expect(nav().queryByRole("link", { name: "My Exams" })).not.toBeInTheDocument();
   });
 
   it("hides navigation entirely when signed out", async () => {

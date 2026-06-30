@@ -1,11 +1,12 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { Layout } from "./components/Layout";
-import { AdminPage } from "./pages/AdminPage";
 import { DashboardPage } from "./pages/DashboardPage";
+import { ExamDetailPage } from "./pages/ExamDetailPage";
+import { ExamListPage } from "./pages/ExamListPage";
 import { LoginPage } from "./pages/LoginPage";
-import { StudentPage } from "./pages/StudentPage";
-import { TeacherPage } from "./pages/TeacherPage";
+
+const STAFF = ["admin", "teacher"] as const;
 
 export default function App() {
   return (
@@ -20,27 +21,20 @@ export default function App() {
         }
       >
         <Route path="/dashboard" element={<DashboardPage />} />
+
         <Route
-          path="/admin"
+          path="/exams"
           element={
-            <ProtectedRoute allowedRoles={["admin"]}>
-              <AdminPage />
+            <ProtectedRoute allowedRoles={[...STAFF]}>
+              <ExamListPage />
             </ProtectedRoute>
           }
         />
         <Route
-          path="/teacher"
+          path="/exam/:examId/details"
           element={
-            <ProtectedRoute allowedRoles={["admin", "teacher"]}>
-              <TeacherPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/student"
-          element={
-            <ProtectedRoute allowedRoles={["student"]}>
-              <StudentPage />
+            <ProtectedRoute allowedRoles={[...STAFF]}>
+              <ExamDetailPage />
             </ProtectedRoute>
           }
         />

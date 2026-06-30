@@ -2,7 +2,7 @@ import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 import { Pool } from "pg";
-import { PrismaClient, UserRole } from "../src/generated/prisma/client.js";
+import { ExamStatus, PrismaClient, UserRole } from "../src/generated/prisma/client.js";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
@@ -87,6 +87,48 @@ async function main() {
   }
 
   console.log(`Seeded ${users.length} users`);
+
+  await seedDemoExams();
+}
+
+// Creates a spread of exams owned by the seeded teacher so the listing UI has
+// data to page through (mixed draft/published statuses). Idempotent: removes
+// the teacher's existing exams first.
+async function seedDemoExams() {
+  const teacher = await prisma.user.findUnique({
+    where: { email: "jane@examflow.edu" },
+    select: { id: true },
+  });
+  if (!teacher) return;
+
+  await prisma.exam.deleteMany({ where: { createdById: teacher.id } });
+
+  const subjects = [
+    "Algebra",
+    "Geometry",
+    "World History",
+    "Organic Chemistry",
+    "Cell Biology",
+    "Mechanics",
+    "Thermodynamics",
+    "English Literature",
+    "Microeconomics",
+    "Data Structures",
+    "Operating Systems",
+    "Linear Algebra",
+  ];
+
+  const exams = subjects.map((subject, index) => ({
+    title: `${subject} ${index % 2 === 0 ? "Midterm" : "Final"}`,
+    description: `Assessment covering core ${subject.toLowerCase()} topics.`,
+    durationMin: 45 + (index % 4) * 15,
+    // Alternate statuses so both states are represented in the list.
+    status: index % 3 === 0 ? ExamStatus.draft : ExamStatus.published,
+    createdById: teacher.id,
+  }));
+
+  await prisma.exam.createMany({ data: exams });
+  console.log(`Seeded ${exams.length} demo exams`);
 }
 
 main()

@@ -1,10 +1,12 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
+import { Provider } from "react-redux";
 import { MemoryRouter } from "react-router-dom";
 import App from "../src/App";
 import { AuthProvider } from "../src/auth/AuthProvider";
 import { ThemeProvider } from "../src/context/ThemeProvider";
+import { createStore } from "../src/store/store";
 
 type UserEventInstance = ReturnType<typeof userEvent.setup>;
 
@@ -29,27 +31,33 @@ export async function submitLogin(
  */
 export function renderApp(route = "/") {
   const user = userEvent.setup();
+  const store = createStore();
   const view = render(
-    <ThemeProvider>
-      <MemoryRouter initialEntries={[route]}>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
-      </MemoryRouter>
-    </ThemeProvider>,
+    <Provider store={store}>
+      <ThemeProvider>
+        <MemoryRouter initialEntries={[route]}>
+          <AuthProvider>
+            <App />
+          </AuthProvider>
+        </MemoryRouter>
+      </ThemeProvider>
+    </Provider>,
   );
-  return { user, ...view };
+  return { user, store, ...view };
 }
 
 /** Renders an arbitrary element wrapped in the app providers. */
 export function renderWithProviders(ui: ReactElement, route = "/") {
   const user = userEvent.setup();
+  const store = createStore();
   const view = render(
-    <ThemeProvider>
-      <MemoryRouter initialEntries={[route]}>
-        <AuthProvider>{ui}</AuthProvider>
-      </MemoryRouter>
-    </ThemeProvider>,
+    <Provider store={store}>
+      <ThemeProvider>
+        <MemoryRouter initialEntries={[route]}>
+          <AuthProvider>{ui}</AuthProvider>
+        </MemoryRouter>
+      </ThemeProvider>
+    </Provider>,
   );
-  return { user, ...view };
+  return { user, store, ...view };
 }
