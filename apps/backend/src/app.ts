@@ -17,6 +17,11 @@ import { teacherRouter } from "./routes/teacher.js";
 export function createApp() {
   const app = express();
 
+  // Render (and most PaaS) terminate TLS at a proxy and forward requests over
+  // HTTP with an `X-Forwarded-Proto` header. Trusting the proxy lets Express
+  // recognize the original request as secure, which `Secure` cookies rely on.
+  app.set("trust proxy", 1);
+
   // Allow the browser client to send/receive the HttpOnly auth cookie across
   // origins (e.g. Vite dev server -> API). `credentials` is required for cookies.
   app.use(

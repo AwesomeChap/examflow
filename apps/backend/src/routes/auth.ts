@@ -15,7 +15,11 @@ function cookieOptions(): CookieOptions {
   return {
     httpOnly: true,
     secure: env.isProduction,
-    sameSite: "lax",
+    // In production the frontend and API are served from different domains
+    // (e.g. *.onrender.com), so the auth cookie is cross-site. Browsers only
+    // send a cross-site cookie when it is `SameSite=None; Secure`. Locally the
+    // client is same-origin enough for `Lax`, which also works without HTTPS.
+    sameSite: env.isProduction ? "none" : "lax",
     path: "/",
     maxAge: ONE_DAY_MS,
   };

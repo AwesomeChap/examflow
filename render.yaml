@@ -1,0 +1,77 @@
+# Render Blueprint for ExamFlow (free tier).
+#
+# Provisions three resources:
+#   1. examflow-db  – free PostgreSQL 16 instance
+#   2. examflow-api – Node web service (Express + Prisma)
+#   3. examflow-web – static site (Vite/React SPA)
+#
+# After the first deploy you must set the two cross-referencing URLs
+# (CORS_ORIGIN on the API, VITE_API_URL on the web build) to the actual
+# onrender.com URLs Render assigns. See the deployment notes in chat.
+
+databases:
+  - name: examflow-db
+    plan: free
+    databaseName: examflow
+    user: examflow
+
+services:
+  # ---- Backend API ---------------------------------------------------------
+  - type: web
+    name: examflow-api
+    runtime: node
+    plan: free
+    rootDir: .
+    # npm workspaces keep the lockfile at the repo root, so we install from the
+    # root and target the backend workspace for migrate + build.
+    buildCommand: >-
+      npm ci &&
+      npm run db:migrate:deploy -w @examflow/backend &&
+      npm run build -w @examflow/backend
+    startCommand: npm run start -w @examflow/backend
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: examflow-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 1d
+      - key: AUTH_COOKIE_NAME
+        value: examflow_token
+      # Set this to the deployed web URL, e.g. https://examflow-web.onrender.com
+      - key: CORS_ORIGIN
+        sync: false
+      # Seed credentials (used only if you run `npm run db:seed` manually).
+      - key: SEED_ADMIN_PASSWORD
+        sync: false
+      - key: SEED_TEACHER_PASSWORD
+        sync: false
+      - key: SEED_STUDENT_PASSWORD
+        sync: false
+
+  # ---- Frontend SPA (static site) -----------------------------------------
+  - type: web
+    name: examflow-web
+    runtime: static
+    rootDir: .
+    buildCommand: npm ci && npm run build -w @examflow/frontend
+    staticPublishPath: apps/frontend/dist
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Baked into the bundle at build time. Set to the API URL WITHOUT a
+      # trailing slash, e.g. https://examflow-api.onrender.com
+      - key: VITE_API_URL
+        sync: false
+    # SPA fallback: serve index.html for client-side routes.
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
