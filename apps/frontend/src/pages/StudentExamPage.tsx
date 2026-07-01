@@ -168,7 +168,8 @@ export function StudentExamPage() {
   const timerUrgent = remainingMs <= 5 * 60 * 1000 && !expired;
 
   return (
-    <div className="mx-auto max-w-3xl pb-16">
+    // Bottom padding clears the fixed footer bar so the card never hides behind it.
+    <div className="mx-auto max-w-3xl pb-28">
       <ExamHeader
         exam={exam}
         remainingMs={remainingMs}
@@ -187,33 +188,111 @@ export function StudentExamPage() {
           disabled={locked}
           onChange={selectAnswer}
         />
-
-        <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
-          <Button
-            variant="secondary"
-            size="sm"
-            disabled={questionIndex === 0 || locked}
-            onClick={() => setQuestionIndex((i) => i - 1)}
-          >
-            Previous
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            disabled={questionIndex >= questions.length - 1 || locked}
-            onClick={() => setQuestionIndex((i) => i + 1)}
-          >
-            Next
-          </Button>
-        </div>
       </Card>
 
-      <div className="mt-6 flex justify-end">
-        <Button onClick={handleManualSubmit} disabled={locked || submitting}>
-          {submitting ? "Submitting…" : "Submit exam"}
-        </Button>
-      </div>
+      <ExamFooter
+        questionIndex={questionIndex}
+        totalQuestions={questions.length}
+        locked={locked}
+        submitting={submitting}
+        onPrevious={() => setQuestionIndex((i) => i - 1)}
+        onNext={() => setQuestionIndex((i) => i + 1)}
+        onSubmit={handleManualSubmit}
+      />
     </div>
+  );
+}
+
+function ChevronLeftIcon() {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      className="h-4 w-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden="true"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12.5 5 7.5 10l5 5" />
+    </svg>
+  );
+}
+
+function ChevronRightIcon() {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      className="h-4 w-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden="true"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 5l5 5-5 5" />
+    </svg>
+  );
+}
+
+/**
+ * Fixed action bar pinned to the bottom of the viewport (mirroring the sticky
+ * header). Keeping Previous/Next in a constant position stops them jumping as
+ * question length changes, and isolating Submit on the far right — where the
+ * timer sits above — guards against accidental submits. The inner column widths
+ * match the page content so the controls line up with the question card edges.
+ */
+function ExamFooter({
+  questionIndex,
+  totalQuestions,
+  locked,
+  submitting,
+  onPrevious,
+  onNext,
+  onSubmit,
+}: {
+  questionIndex: number;
+  totalQuestions: number;
+  locked: boolean;
+  submitting: boolean;
+  onPrevious: () => void;
+  onNext: () => void;
+  onSubmit: () => void;
+}) {
+  return (
+    <footer className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
+      <div className="mx-auto max-w-5xl px-4 sm:px-6">
+        <div className="mx-auto max-w-3xl">
+          <div className="flex items-center justify-between gap-3 py-3.5">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={questionIndex === 0 || locked}
+                onClick={onPrevious}
+              >
+                <ChevronLeftIcon />
+                Previous
+              </Button>
+              <span
+                aria-hidden="true"
+                className="h-5 w-px bg-slate-200 dark:bg-slate-700"
+              />
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={questionIndex >= totalQuestions - 1 || locked}
+                onClick={onNext}
+              >
+                Next
+                <ChevronRightIcon />
+              </Button>
+            </div>
+            <Button onClick={onSubmit} disabled={locked || submitting}>
+              {submitting ? "Submitting…" : "Submit exam"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </footer>
   );
 }
 
@@ -233,7 +312,9 @@ function ExamHeader({
   locked: boolean;
 }) {
   return (
-    <header className="sticky top-0 z-10 -mx-4 border-b border-slate-200 bg-white/95 px-4 py-4 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95 sm:-mx-6 sm:px-6">
+    // Styled to match the question card (same width, rounded border, shadow) so
+    // it reads as part of the same stack instead of a wider bar bleeding past it.
+    <header className="sticky top-0 z-10 rounded-2xl border border-slate-200 bg-white/95 px-6 py-4 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/95">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
