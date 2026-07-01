@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
+import { useAuth } from "./auth/useAuth";
 import { Layout } from "./components/Layout";
 import { CreateExamPage } from "./pages/CreateExamPage";
 import { CreateUserPage } from "./pages/CreateUserPage";
@@ -15,6 +16,23 @@ import { StudentResultsPage } from "./pages/StudentResultsPage";
 const STAFF = ["admin", "teacher"] as const;
 const ADMIN = ["admin"] as const;
 const STUDENT = ["student"] as const;
+
+// Landing redirect for `/` and unknown paths. Waits for the session check to
+// finish, then sends the visitor to their dashboard (authenticated) or to
+// login (not), avoiding a visible detour through the protected /dashboard.
+function LandingRedirect() {
+  const { status, user } = useAuth();
+
+  if (status === "loading") {
+    return (
+      <div role="status" className="flex min-h-screen items-center justify-center text-slate-500">
+        Loading…
+      </div>
+    );
+  }
+
+  return <Navigate to={user ? "/dashboard" : "/login"} replace />;
+}
 
 export default function App() {
   return (
@@ -96,8 +114,8 @@ export default function App() {
         />
       </Route>
 
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/" element={<LandingRedirect />} />
+      <Route path="*" element={<LandingRedirect />} />
     </Routes>
   );
 }
