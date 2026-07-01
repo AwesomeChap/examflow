@@ -1,12 +1,19 @@
 import type { StudentQuestion } from "../../types/studentQuestion";
+import { formatAnswerDisplay } from "../../lib/formatAnswer";
 
 type ExamQuestionPanelProps = {
   question: StudentQuestion;
   index: number;
   total: number;
-  value: string | undefined;
+  value?: string;
   disabled?: boolean;
-  onChange: (value: string) => void;
+  onChange?: (value: string) => void;
+  /**
+   * Read-only preview: the correct answer to highlight (green). When set, the
+   * panel renders non-interactively — used for the staff exam preview where
+   * there is no attempt to submit.
+   */
+  correctValue?: string;
 };
 
 export function ExamQuestionPanel({
@@ -16,7 +23,13 @@ export function ExamQuestionPanel({
   value,
   disabled,
   onChange,
+  correctValue,
 }: ExamQuestionPanelProps) {
+  const preview = correctValue !== undefined;
+  const readOnly = disabled || preview;
+  const options = question.type === "mcq" && question.options ? question.options : ["true", "false"];
+  const isTrueFalse = question.type !== "mcq";
+
   return (
     <div className="space-y-6">
       <div>
@@ -29,65 +42,47 @@ export function ExamQuestionPanel({
         </p>
       </div>
 
-      {question.type === "mcq" && question.options ? (
-        <fieldset className="space-y-2" disabled={disabled}>
-          <legend className="sr-only">Choose an answer</legend>
-          {question.options.map((option) => {
-            const selected = value === option;
-            return (
-              <label
-                key={option}
-                className={[
-                  "flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 transition",
-                  selected
+      <fieldset className="space-y-2" disabled={readOnly}>
+        <legend className={preview ? "mb-1 text-sm font-medium text-slate-700 dark:text-slate-200" : "sr-only"}>
+          {preview ? "Answer options" : "Choose an answer"}
+        </legend>
+        {options.map((option) => {
+          const selected = value === option;
+          const isCorrect = preview && correctValue === option;
+          return (
+            <label
+              key={option}
+              className={[
+                "flex items-center gap-3 rounded-lg border px-4 py-3 transition",
+                isTrueFalse && "capitalize",
+                isCorrect
+                  ? "border-green-400 bg-green-50 dark:border-green-500/40 dark:bg-green-500/10"
+                  : selected
                     ? "border-blue-400 bg-blue-50 dark:border-blue-500/40 dark:bg-blue-500/10"
-                    : "border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:hover:bg-slate-900",
-                  disabled && "pointer-events-none opacity-60",
-                ].join(" ")}
-              >
-                <input
-                  type="radio"
-                  name={`question-${question.id}`}
-                  checked={selected}
-                  onChange={() => onChange(option)}
-                  className="h-4 w-4 accent-blue-600"
-                />
-                <span className="text-slate-900 dark:text-slate-100">{option}</span>
-              </label>
-            );
-          })}
-        </fieldset>
-      ) : (
-        <fieldset className="space-y-2" disabled={disabled}>
-          <legend className="text-sm font-medium text-slate-700 dark:text-slate-200">
-            Your answer
-          </legend>
-          {(["true", "false"] as const).map((option) => {
-            const selected = value === option;
-            return (
-              <label
-                key={option}
-                className={[
-                  "flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 capitalize transition",
-                  selected
-                    ? "border-blue-400 bg-blue-50 dark:border-blue-500/40 dark:bg-blue-500/10"
-                    : "border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:hover:bg-slate-900",
-                  disabled && "pointer-events-none opacity-60",
-                ].join(" ")}
-              >
-                <input
-                  type="radio"
-                  name={`question-${question.id}`}
-                  checked={selected}
-                  onChange={() => onChange(option)}
-                  className="h-4 w-4 accent-blue-600"
-                />
-                <span className="text-slate-900 dark:text-slate-100">{option}</span>
-              </label>
-            );
-          })}
-        </fieldset>
-      )}
+                    : "border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-950",
+                readOnly ? "cursor-default" : "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900",
+                disabled && "opacity-60",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              <input
+                type="radio"
+                name={`question-${question.id}`}
+                checked={preview ? isCorrect : selected}
+                onChange={() => onChange?.(option)}
+                className={isCorrect ? "h-4 w-4 accent-green-600" : "h-4 w-4 accent-blue-600"}
+              />
+              <span className="text-slate-900 dark:text-slate-100">{formatAnswerDisplay(option)}</span>
+              {isCorrect && (
+                <span className="ml-auto text-xs font-semibold text-green-700 dark:text-green-400">
+                  Correct answer
+                </span>
+              )}
+            </label>
+          );
+        })}
+      </fieldset>
     </div>
   );
 }

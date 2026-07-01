@@ -26,19 +26,19 @@ describe("admin dashboard overview", () => {
 
     // Every exam is rendered as a card.
     const main = within(screen.getByRole("main"));
-    expect(await main.findByRole("link", { name: "Algebra" })).toBeInTheDocument();
-    expect(main.getByRole("link", { name: "Geometry" })).toBeInTheDocument();
+    expect(await main.findByText("Algebra")).toBeInTheDocument();
+    expect(main.getByText("Geometry")).toBeInTheDocument();
     expect(main.getByRole("link", { name: /create exam/i })).toBeInTheDocument();
   });
 
-  it("navigates to a chosen exam's analytics from its card", async () => {
+  it("navigates to a chosen exam's details from its card", async () => {
     seedSession(toPublic("admin"));
     seedExams([makeExam({ id: "e1", title: "Some Exam", createdById: TEST_USERS.teacher.id })]);
     const { user } = renderApp("/dashboard");
 
     await screen.findByText("admin dashboard");
     const main = within(screen.getByRole("main"));
-    await user.click(await main.findByRole("link", { name: "Some Exam" }));
+    await user.click(await main.findByRole("link", { name: /^details$/i }));
 
     expect(await screen.findByRole("heading", { name: /analytics/i })).toBeInTheDocument();
   });

@@ -30,7 +30,7 @@ export function ExamCard({ exam, showCreator = false, onClone, cloning, onDiscar
     <Card className="flex h-full flex-col p-5">
       <div className="mb-2 flex items-start justify-between gap-3">
         <Link
-          to={`/exam/${exam.id}/details`}
+          to={`/exam/${exam.id}/preview`}
           className="font-semibold text-slate-900 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-slate-100"
         >
           {exam.title}
@@ -39,7 +39,7 @@ export function ExamCard({ exam, showCreator = false, onClone, cloning, onDiscar
       </div>
 
       {exam.description && (
-        <p className="mb-3 line-clamp-2 text-sm text-slate-500 dark:text-slate-400">
+        <p className="mb-3 line-clamp-1 text-sm text-slate-500 dark:text-slate-400">
           {exam.description}
         </p>
       )}
@@ -73,7 +73,7 @@ export function ExamCard({ exam, showCreator = false, onClone, cloning, onDiscar
       <div className="mt-auto flex flex-wrap items-center gap-2">
         <Link to={`/exam/${exam.id}/details`}>
           <Button variant="secondary" size="sm" className={TINT.amber}>
-            Analytics
+            Details
           </Button>
         </Link>
         {editable && (

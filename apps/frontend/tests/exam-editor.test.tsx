@@ -253,4 +253,21 @@ describe("exam editor — validation, options, and payload", () => {
       points: 1,
     });
   });
+
+  describe("staff preview", () => {
+    it("lets a teacher review an exam with the correct answer highlighted and no submit", async () => {
+      seedTeacherExam({ status: "published" });
+      seedQuestions("e1", [mcq("q1")]);
+      renderApp("/exam/e1/preview");
+
+      await screen.findByText("What is 2 + 2?");
+      expect(screen.getByText(/preview mode/i)).toBeInTheDocument();
+
+      // The correct option is marked and pre-selected; nothing is submittable.
+      const correct = screen.getByRole("radio", { name: /4/ });
+      expect(correct).toBeChecked();
+      expect(screen.getByText("Correct answer", { exact: true })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /submit/i })).not.toBeInTheDocument();
+    });
+  });
 });

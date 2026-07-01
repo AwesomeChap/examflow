@@ -5,6 +5,7 @@ import { CreateExamPage } from "./pages/CreateExamPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { ExamDetailPage } from "./pages/ExamDetailPage";
 import { ExamEditorPage } from "./pages/ExamEditorPage";
+import { ExamPreviewPage } from "./pages/ExamPreviewPage";
 import { LoginPage } from "./pages/LoginPage";
 import { StudentExamPage } from "./pages/StudentExamPage";
 import { StudentResultPage } from "./pages/StudentResultPage";
@@ -48,6 +49,14 @@ export default function App() {
           element={
             <ProtectedRoute allowedRoles={[...STAFF]}>
               <ExamDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/exam/:examId/preview"
+          element={
+            <ProtectedRoute allowedRoles={[...STAFF]}>
+              <ExamPreviewPage />
             </ProtectedRoute>
           }
         />

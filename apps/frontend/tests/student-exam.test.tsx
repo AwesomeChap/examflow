@@ -99,7 +99,7 @@ describe("student exam flow", () => {
 
       await user.click(screen.getByRole("button", { name: /next/i }));
       await screen.findByText("Sky is blue");
-      await user.click(screen.getByRole("radio", { name: "true" }));
+      await user.click(screen.getByRole("radio", { name: "True" }));
 
       await user.click(screen.getByRole("button", { name: /previous/i }));
       await screen.findByText("Pick four");
@@ -108,7 +108,7 @@ describe("student exam flow", () => {
 
       await user.click(screen.getByRole("button", { name: /next/i }));
       await screen.findByText("Sky is blue");
-      expect(screen.getByRole("radio", { name: "true" })).toBeChecked();
+      expect(screen.getByRole("radio", { name: "True" })).toBeChecked();
       expect(screen.getByText(/2\/2 attempted/i)).toBeInTheDocument();
     });
   });
