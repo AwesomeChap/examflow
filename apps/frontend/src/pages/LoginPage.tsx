@@ -82,14 +82,13 @@ export function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900 transition-colors dark:bg-slate-950 dark:text-slate-100">
-      <header className="flex items-center justify-between px-4 py-4 sm:px-6">
+    <div className="relative flex min-h-screen items-center justify-center bg-slate-50 px-4 py-16 text-slate-900 transition-colors dark:bg-slate-950 dark:text-slate-100">
+      <header className="absolute inset-x-0 top-0 flex items-center justify-between px-4 py-4 sm:px-6">
         <Logo />
         <ThemeToggle />
       </header>
 
-      <main className="flex flex-1 items-center justify-center px-4 py-8">
-        <Card className="w-full max-w-md p-6 sm:p-8">
+      <Card className="w-full max-w-md p-6 sm:p-8">
           <div className="mb-6">
             <h1 className="text-2xl font-bold tracking-tight">Welcome back</h1>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
@@ -143,7 +142,6 @@ export function LoginPage() {
             </Button>
           </form>
         </Card>
-      </main>
     </div>
   );
 }
