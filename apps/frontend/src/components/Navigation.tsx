@@ -18,7 +18,8 @@ type NavItem = {
 const NAV_ITEMS: NavItem[] = [
   { to: "/dashboard", label: "Dashboard" },
   { to: "/results", label: "Results", roles: ["student"] },
-  { to: "/exams/new", label: "Create Exam", roles: ["admin", "teacher"] },
+  { to: "/exams/new", label: "Create Exam", roles: ["teacher"] },
+  { to: "/users/new", label: "Create User", roles: ["admin"] },
 ];
 
 export function Navigation() {

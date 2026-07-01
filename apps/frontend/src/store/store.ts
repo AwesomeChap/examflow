@@ -6,6 +6,7 @@ import "./questionsApi";
 import "./studentsApi";
 import "./assignmentsApi";
 import "./adminApi";
+import "./usersApi";
 import "./studentApi";
 import "./attemptsApi";
 import "./analyticsApi";

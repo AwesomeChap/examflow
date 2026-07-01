@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth/useAuth";
 import { ExamCardGrid } from "../components/exams/ExamCardGrid";
+import { UserList } from "../components/users/UserList";
 import { Button } from "../components/ui/Button";
 import { StatCard } from "../components/ui/StatCard";
 import { useGetAdminDashboardQuery } from "../store/adminApi";
@@ -21,23 +23,64 @@ function CreateExamButton() {
   );
 }
 
+// Options for the user role filter; "" means all roles.
+const ROLE_FILTERS: { value: "" | UserRole; label: string }[] = [
+  { value: "student", label: "Students" },
+  { value: "teacher", label: "Teachers" },
+  { value: "admin", label: "Admins" },
+  { value: "", label: "All roles" },
+];
+
 function AdminOverview() {
   const { data, isLoading } = useGetAdminDashboardQuery();
+  // Default to students, the largest and most frequently managed cohort.
+  const [roleFilter, setRoleFilter] = useState<"" | UserRole>("student");
 
   return (
     <div className="mt-8 space-y-8">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard label="Students" value={isLoading || !data ? "—" : data.users.students} />
         <StatCard label="Teachers" value={isLoading || !data ? "—" : data.users.teachers} />
-        <StatCard label="Exams" value={isLoading || !data ? "—" : data.exams} />
+        <StatCard label="Admins" value={isLoading || !data ? "—" : data.users.admins} />
       </div>
 
       <section>
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">All exams</h2>
-          <CreateExamButton />
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold">Users</h2>
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+              <span className="sr-only sm:not-sr-only">Filter by role</span>
+              <span className="relative inline-block">
+                <select
+                  value={roleFilter}
+                  onChange={(e) => setRoleFilter(e.target.value as "" | UserRole)}
+                  aria-label="Filter users by role"
+                  className="appearance-none rounded-lg border border-slate-300 bg-white py-1.5 pl-3 pr-7 text-sm text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                >
+                  {ROLE_FILTERS.map((option) => (
+                    <option key={option.label} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  aria-hidden="true"
+                  className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 dark:text-slate-400"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </span>
+            </label>
+            <Link to="/users/new">
+              <Button>Create user</Button>
+            </Link>
+          </div>
         </div>
-        <ExamCardGrid showCreator emptyHint="No exams have been created yet." />
+        <UserList role={roleFilter || undefined} />
       </section>
     </div>
   );

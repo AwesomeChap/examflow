@@ -30,6 +30,10 @@ model User {
   role                UserRole
   passwordHash        String?
   matriculationNumber String?  @unique
+  // Soft-delete marker. Null = active; a timestamp means the account is
+  // deactivated (cannot log in). We never hard-delete so matriculation numbers
+  // and emails are never reused.
+  deactivatedAt       DateTime?
   createdAt           DateTime @default(now())
 
   createdExams    Exam[]           @relation("ExamCreator")

@@ -17,6 +17,7 @@ export async function getCurrentUser(
       email: true,
       role: true,
       matriculationNumber: true,
+      deactivatedAt: true,
       createdAt: true,
     },
   });
@@ -26,7 +27,15 @@ export async function getCurrentUser(
     return;
   }
 
-  res.json({ user });
+  // A session that outlives its account being deactivated must not resolve;
+  // ending it here forces re-login (which the login route then blocks).
+  if (user.deactivatedAt) {
+    sendError(res, 401, "Account deactivated");
+    return;
+  }
+
+  const { deactivatedAt: _deactivatedAt, ...publicUser } = user;
+  res.json({ user: publicUser });
 }
 
 export const meRouter = Router();

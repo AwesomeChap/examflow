@@ -59,6 +59,25 @@ export const paginationSchema = z.object({
 
 export type PaginationInput = z.infer<typeof paginationSchema>;
 
+// ---------- Users (admin management) ----------
+
+export const userRoleSchema = z.enum(["admin", "teacher", "student"]);
+
+// Admins provision teachers and students only; the email + matriculation are
+// generated server-side, so the payload is just name, role, and password.
+export const userCreateSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  role: z.enum(["teacher", "student"]),
+  password: z.string().min(8).max(200),
+});
+
+export const userListQuerySchema = paginationSchema.extend({
+  role: userRoleSchema.optional(),
+});
+
+export type UserCreateInput = z.infer<typeof userCreateSchema>;
+export type UserListQueryInput = z.infer<typeof userListQuerySchema>;
+
 // ---------- Question ----------
 
 const questionBase = {

@@ -16,6 +16,7 @@ export const api = createApi({
     "Question",
     "Assignment",
     "Student",
+    "User",
     "AdminDashboard",
     "StudentDashboard",
     "Attempt",

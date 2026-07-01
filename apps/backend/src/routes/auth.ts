@@ -39,8 +39,9 @@ authRouter.post("/login", async (req: Request, res: Response) => {
     },
   });
 
-  // Any account with a password may log in (admin, teacher, or student).
-  if (!user || !user.passwordHash) {
+  // Any active account with a password may log in (admin, teacher, or
+  // student). Deactivated accounts are rejected with the same generic message.
+  if (!user || !user.passwordHash || user.deactivatedAt) {
     sendError(res, 401, "Invalid credentials");
     return;
   }

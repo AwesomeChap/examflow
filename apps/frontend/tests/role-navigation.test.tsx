@@ -13,22 +13,24 @@ function nav() {
 }
 
 describe("role-based navigation visibility", () => {
-  it("shows the admin Dashboard and Create Exam", async () => {
+  it("shows the admin Dashboard and Create User (not Create Exam)", async () => {
     seedSession(toPublic("admin"));
     renderApp("/dashboard");
 
     await screen.findByText("admin dashboard");
     expect(nav().getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
-    expect(nav().getByRole("link", { name: "Create Exam" })).toBeInTheDocument();
+    expect(nav().getByRole("link", { name: "Create User" })).toBeInTheDocument();
+    expect(nav().queryByRole("link", { name: "Create Exam" })).not.toBeInTheDocument();
   });
 
-  it("shows a teacher Dashboard and Create Exam", async () => {
+  it("shows a teacher Dashboard and Create Exam (not Create User)", async () => {
     seedSession(toPublic("teacher"));
     renderApp("/dashboard");
 
     await screen.findByText("teacher dashboard");
     expect(nav().getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
     expect(nav().getByRole("link", { name: "Create Exam" })).toBeInTheDocument();
+    expect(nav().queryByRole("link", { name: "Create User" })).not.toBeInTheDocument();
   });
 
   it("shows a student Dashboard and Results (no exam authoring)", async () => {

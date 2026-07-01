@@ -1,5 +1,6 @@
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
+import type { AdminUser } from "../src/types/adminUser";
 import type { ExamListItem } from "../src/types/exam";
 import type { Attempt, AttemptResult } from "../src/types/attempt";
 import type { Question } from "../src/types/question";
@@ -65,9 +66,14 @@ let activeSession: User | null = null;
 export const requestCredentials: Record<string, RequestCredentials> = {};
 
 /** Captured request payloads, for asserting exactly what the client sent. */
-export const capturedRequests: { questionCreate: unknown[]; examUpdate: unknown[] } = {
+export const capturedRequests: {
+  questionCreate: unknown[];
+  examUpdate: unknown[];
+  userCreate: unknown[];
+} = {
   questionCreate: [],
   examUpdate: [],
+  userCreate: [],
 };
 
 export function seedSession(user: User | null) {
@@ -80,6 +86,8 @@ let examFixtures: ExamListItem[] = [];
 const questionsByExam = new Map<string, Question[]>();
 /** All student accounts (for the assign multi-select). */
 let studentFixtures: Student[] = [];
+/** Admin user-management store. */
+let userFixtures: AdminUser[] = [];
 /** Assigned student ids keyed by exam id. */
 const assignmentsByExam = new Map<string, Set<string>>();
 /** All attempts (in-progress + submitted) keyed by `userId:examId`. */
@@ -157,6 +165,48 @@ export function seedQuestions(examId: string, questions: Question[]) {
 
 export function seedStudents(students: Student[]) {
   studentFixtures = students;
+}
+
+export function seedUsers(users: AdminUser[]) {
+  userFixtures = users;
+}
+
+/** Convenience builder for an admin user row. */
+export function makeUser(overrides: Partial<AdminUser> & { id: string }): AdminUser {
+  const role = overrides.role ?? "student";
+  return {
+    name: `User ${overrides.id}`,
+    email: `${overrides.id}@stud.examflow.edu`,
+    role,
+    matriculationNumber: role === "student" ? `MAT2026${overrides.id}` : null,
+    deactivatedAt: null,
+    createdAt: new Date().toISOString(),
+    ...overrides,
+  };
+}
+
+/** Mirrors the backend's email generation (first token + numeric suffix). */
+function generateMockEmail(name: string, role: AdminUser["role"]): string {
+  const first = (name.trim().split(/\s+/)[0] ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const base = first || "user";
+  const domain = role === "student" ? "@stud.examflow.edu" : "@examflow.edu";
+  const taken = new Set(userFixtures.map((u) => u.email.toLowerCase()));
+  let candidate = `${base}${domain}`;
+  let suffix = 2;
+  while (taken.has(candidate.toLowerCase())) {
+    candidate = `${base}${suffix}${domain}`;
+    suffix += 1;
+  }
+  return candidate;
+}
+
+function generateMockMatriculation(): string {
+  const year = new Date().getFullYear();
+  const prefix = `MAT${year}`;
+  const count = userFixtures.filter((u) =>
+    u.matriculationNumber?.startsWith(prefix),
+  ).length;
+  return `${prefix}${String(count + 1).padStart(3, "0")}`;
 }
 
 export function seedAssignments(examId: string, studentIds: string[]) {
@@ -361,6 +411,7 @@ export function resetSession() {
   examFixtures = [];
   questionsByExam.clear();
   studentFixtures = [];
+  userFixtures = [];
   assignmentsByExam.clear();
   attemptsByKey.clear();
   analyticsByExam.clear();
@@ -368,6 +419,7 @@ export function resetSession() {
   idCounter = 0;
   capturedRequests.questionCreate.length = 0;
   capturedRequests.examUpdate.length = 0;
+  capturedRequests.userCreate.length = 0;
   for (const key of Object.keys(requestCredentials)) {
     delete requestCredentials[key];
   }
@@ -673,6 +725,68 @@ export const handlers = [
       users: { admins: 1, teachers: 3, students: 25 },
       exams: examFixtures.length,
     });
+  }),
+
+  http.get(`${API}/admin/users`, ({ request }) => {
+    requestCredentials["/admin/users"] = request.credentials;
+    if (!activeSession || activeSession.role !== "admin") {
+      return HttpResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    const url = new URL(request.url);
+    const page = Number(url.searchParams.get("page") ?? "1");
+    const pageSize = Number(url.searchParams.get("pageSize") ?? "50");
+    const role = url.searchParams.get("role");
+
+    const filtered = role ? userFixtures.filter((u) => u.role === role) : userFixtures;
+    const start = (page - 1) * pageSize;
+    const users = filtered.slice(start, start + pageSize);
+    return HttpResponse.json({ users, total: filtered.length, page, pageSize });
+  }),
+
+  http.post(`${API}/admin/users`, async ({ request }) => {
+    if (!activeSession || activeSession.role !== "admin") {
+      return HttpResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    const body = (await request.json()) as {
+      name: string;
+      role: "teacher" | "student";
+      password: string;
+    };
+    capturedRequests.userCreate.push(body);
+    const user: AdminUser = {
+      id: nextId("user"),
+      name: body.name,
+      email: generateMockEmail(body.name, body.role),
+      role: body.role,
+      matriculationNumber: body.role === "student" ? generateMockMatriculation() : null,
+      deactivatedAt: null,
+      createdAt: new Date().toISOString(),
+    };
+    userFixtures = [user, ...userFixtures];
+    return HttpResponse.json({ user }, { status: 201 });
+  }),
+
+  http.delete(`${API}/admin/users/:userId`, ({ params }) => {
+    if (!activeSession || activeSession.role !== "admin") {
+      return HttpResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    const index = userFixtures.findIndex((u) => u.id === params.userId);
+    if (index < 0) return HttpResponse.json({ error: "Not found" }, { status: 404 });
+    userFixtures[index] = {
+      ...userFixtures[index],
+      deactivatedAt: new Date().toISOString(),
+    };
+    return HttpResponse.json({ user: userFixtures[index] });
+  }),
+
+  http.post(`${API}/admin/users/:userId/reactivate`, ({ params }) => {
+    if (!activeSession || activeSession.role !== "admin") {
+      return HttpResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    const index = userFixtures.findIndex((u) => u.id === params.userId);
+    if (index < 0) return HttpResponse.json({ error: "Not found" }, { status: 404 });
+    userFixtures[index] = { ...userFixtures[index], deactivatedAt: null };
+    return HttpResponse.json({ user: userFixtures[index] });
   }),
 
   http.get(`${API}/student/dashboard`, () => {

@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { Layout } from "./components/Layout";
 import { CreateExamPage } from "./pages/CreateExamPage";
+import { CreateUserPage } from "./pages/CreateUserPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { ExamDetailPage } from "./pages/ExamDetailPage";
 import { ExamEditorPage } from "./pages/ExamEditorPage";
@@ -12,6 +13,7 @@ import { StudentResultPage } from "./pages/StudentResultPage";
 import { StudentResultsPage } from "./pages/StudentResultsPage";
 
 const STAFF = ["admin", "teacher"] as const;
+const ADMIN = ["admin"] as const;
 const STUDENT = ["student"] as const;
 
 export default function App() {
@@ -33,6 +35,14 @@ export default function App() {
           element={
             <ProtectedRoute allowedRoles={[...STAFF]}>
               <CreateExamPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/users/new"
+          element={
+            <ProtectedRoute allowedRoles={[...ADMIN]}>
+              <CreateUserPage />
             </ProtectedRoute>
           }
         />
