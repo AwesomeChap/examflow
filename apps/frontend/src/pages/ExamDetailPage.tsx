@@ -2,6 +2,7 @@ import { Link, useParams } from "react-router-dom";
 import { ExamAnalytics } from "../components/analytics/ExamAnalytics";
 import { ExamStatusBadge } from "../components/exams/ExamStatusBadge";
 import { Button } from "../components/ui/Button";
+import { ButtonLink } from "../components/ui/ButtonLink";
 import { Card } from "../components/ui/Card";
 import { useCloneExam } from "../hooks/useCloneExam";
 import { isExamEditable } from "../lib/examRules";
@@ -56,9 +57,9 @@ export function ExamDetailPage() {
           </div>
           <div className="flex shrink-0 gap-2">
             {editable && (
-              <Link to={`/exam/${exam.id}/edit`}>
-                <Button variant="secondary">Edit exam</Button>
-              </Link>
+              <ButtonLink to={`/exam/${exam.id}/edit`} variant="secondary">
+                Edit exam
+              </ButtonLink>
             )}
             <Button variant="secondary" onClick={() => clone(exam.id)} disabled={cloningId === exam.id}>
               {cloningId === exam.id ? "Cloning…" : "Clone"}

@@ -68,10 +68,10 @@ describe("admin dashboard overview", () => {
     await screen.findByText("admin dashboard");
     const main = within(screen.getByRole("main"));
 
-    await user.click(await main.findByRole("button", { name: /^deactivate$/i }));
+    await user.click(await main.findByRole("button", { name: /deactivate sara student/i }));
 
     // Row now shows a Deactivated badge and a Reactivate action.
     expect(await main.findByText("Deactivated")).toBeInTheDocument();
-    expect(main.getByRole("button", { name: /reactivate/i })).toBeInTheDocument();
+    expect(main.getByRole("button", { name: /reactivate sara student/i })).toBeInTheDocument();
   });
 });

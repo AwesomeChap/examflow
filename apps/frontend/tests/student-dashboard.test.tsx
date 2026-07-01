@@ -33,7 +33,8 @@ describe("student dashboard", () => {
 
     await screen.findByText("student dashboard");
     expect(await screen.findByText("Math Quiz")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /start exam/i })).toBeInTheDocument();
+    // "Start exam" is a navigation action, so it renders as a link, not a button.
+    expect(screen.getByRole("link", { name: /start exam/i })).toBeInTheDocument();
   });
 
   it("disables exams that have not opened yet", async () => {

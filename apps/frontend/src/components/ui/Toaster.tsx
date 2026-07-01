@@ -20,15 +20,19 @@ const VARIANT_ICON: Record<Toast["variant"], string> = {
 
 export function Toaster({ toasts, onDismiss }: ToasterProps) {
   return (
+    // A plain region wrapper (not itself a live region) so we don't nest live
+    // regions; each toast is its own live region with politeness matched to
+    // its urgency (errors assertive, everything else polite).
     <div
-      aria-live="polite"
+      role="region"
       aria-label="Notifications"
       className="pointer-events-none fixed inset-x-0 top-4 z-50 flex flex-col items-center gap-2 px-4"
     >
       {toasts.map((toast) => (
         <div
           key={toast.id}
-          role="status"
+          role={toast.variant === "error" ? "alert" : "status"}
+          aria-live={toast.variant === "error" ? "assertive" : "polite"}
           className={cn(
             "pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-xl border px-4 py-3 shadow-lg",
             "motion-safe:animate-[toast-in_180ms_ease-out]",

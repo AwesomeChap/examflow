@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { ExamQuestionPanel } from "../components/exams/ExamQuestionPanel";
 import { ExamStatusBadge } from "../components/exams/ExamStatusBadge";
 import { Button } from "../components/ui/Button";
+import { ButtonLink } from "../components/ui/ButtonLink";
 import { Card } from "../components/ui/Card";
 import { useGetExamQuery } from "../store/examsApi";
 import { useGetExamQuestionsQuery } from "../store/questionsApi";
@@ -59,11 +60,9 @@ export function ExamPreviewPage() {
             <h1 className="text-2xl font-bold tracking-tight">{exam.title}</h1>
             <ExamStatusBadge status={exam.status} />
           </div>
-          <Link to={`/exam/${exam.id}/details`}>
-            <Button variant="secondary" size="sm">
-              Details
-            </Button>
-          </Link>
+          <ButtonLink to={`/exam/${exam.id}/details`} variant="secondary" size="sm">
+            Details
+          </ButtonLink>
         </div>
         {exam.description && (
           <p className="mt-2 text-slate-600 dark:text-slate-400">{exam.description}</p>

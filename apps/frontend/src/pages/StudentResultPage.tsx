@@ -1,6 +1,6 @@
 import { Link, useParams } from "react-router-dom";
 import { Badge } from "../components/ui/Badge";
-import { Button } from "../components/ui/Button";
+import { ButtonLink } from "../components/ui/ButtonLink";
 import { Card } from "../components/ui/Card";
 import { useGetAttemptResultQuery, useGetStudentExamQuery } from "../store/attemptsApi";
 import { formatAnswerDisplay } from "../lib/formatAnswer";
@@ -115,9 +115,9 @@ export function StudentResultPage() {
       </div>
 
       <div className="mt-8 border-t border-slate-200 pt-8 dark:border-slate-800">
-        <Link to="/dashboard">
-          <Button variant="secondary">Back to dashboard</Button>
-        </Link>
+        <ButtonLink to="/dashboard" variant="secondary">
+          Back to dashboard
+        </ButtonLink>
       </div>
     </section>
   );

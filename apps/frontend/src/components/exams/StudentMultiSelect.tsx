@@ -27,6 +27,8 @@ export function StudentMultiSelect({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -36,7 +38,11 @@ export function StudentMultiSelect({
       }
     };
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") {
+        setOpen(false);
+        // Return focus to the trigger so keyboard users are not stranded.
+        triggerRef.current?.focus();
+      }
     };
     document.addEventListener("mousedown", onPointerDown);
     document.addEventListener("keydown", onKeyDown);
@@ -44,6 +50,11 @@ export function StudentMultiSelect({
       document.removeEventListener("mousedown", onPointerDown);
       document.removeEventListener("keydown", onKeyDown);
     };
+  }, [open]);
+
+  // Move focus into the popup's search field when it opens.
+  useEffect(() => {
+    if (open) searchRef.current?.focus();
   }, [open]);
 
   const selected = new Set(selectedIds);
@@ -75,6 +86,7 @@ export function StudentMultiSelect({
         Target students
       </span>
       <button
+        ref={triggerRef}
         type="button"
         disabled={disabled || isLoading}
         onClick={() => setOpen((prev) => !prev)}
@@ -100,6 +112,7 @@ export function StudentMultiSelect({
           className="absolute z-20 mt-2 w-72 rounded-xl border border-slate-200 bg-white p-2 shadow-lg dark:border-slate-700 dark:bg-slate-900"
         >
           <input
+            ref={searchRef}
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}

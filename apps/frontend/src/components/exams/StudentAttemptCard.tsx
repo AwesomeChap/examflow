@@ -1,7 +1,6 @@
-import { Link } from "react-router-dom";
 import type { AttemptSummary } from "../../types/attemptSummary";
 import { Badge } from "../ui/Badge";
-import { Button } from "../ui/Button";
+import { ButtonLink } from "../ui/ButtonLink";
 import { Card } from "../ui/Card";
 
 const TINT_AMBER =
@@ -48,11 +47,14 @@ export function StudentAttemptCard({ attempt }: StudentAttemptCardProps) {
       </dl>
 
       <div className="mt-auto">
-        <Link to={`/results/${attempt.examId}/${attempt.id}`}>
-          <Button variant="secondary" size="sm" className={TINT_AMBER}>
-            View result
-          </Button>
-        </Link>
+        <ButtonLink
+          to={`/results/${attempt.examId}/${attempt.id}`}
+          variant="secondary"
+          size="sm"
+          className={TINT_AMBER}
+        >
+          View result
+        </ButtonLink>
       </div>
     </Card>
   );

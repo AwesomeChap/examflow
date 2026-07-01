@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { isExamEditable } from "../../lib/examRules";
 import type { ExamListItem } from "../../types/exam";
 import { Button } from "../ui/Button";
+import { ButtonLink } from "../ui/ButtonLink";
 import { Card } from "../ui/Card";
 import { ExamStatusBadge } from "./ExamStatusBadge";
 
@@ -71,17 +72,13 @@ export function ExamCard({ exam, showCreator = false, onClone, cloning, onDiscar
       </dl>
 
       <div className="mt-auto flex flex-wrap items-center gap-2">
-        <Link to={`/exam/${exam.id}/details`}>
-          <Button variant="secondary" size="sm" className={TINT.amber}>
-            Details
-          </Button>
-        </Link>
+        <ButtonLink to={`/exam/${exam.id}/details`} variant="secondary" size="sm" className={TINT.amber}>
+          Details
+        </ButtonLink>
         {editable && (
-          <Link to={`/exam/${exam.id}/edit`}>
-            <Button variant="secondary" size="sm" className={TINT.blue}>
-              Edit
-            </Button>
-          </Link>
+          <ButtonLink to={`/exam/${exam.id}/edit`} variant="secondary" size="sm" className={TINT.blue}>
+            Edit
+          </ButtonLink>
         )}
         <Button variant="secondary" size="sm" onClick={() => onClone(exam.id)} disabled={cloning}>
           {cloning ? "Cloning…" : "Clone"}

@@ -5,6 +5,7 @@ import { QuestionForm } from "../components/exams/QuestionForm";
 import { QuestionList } from "../components/exams/QuestionList";
 import { StudentMultiSelect } from "../components/exams/StudentMultiSelect";
 import { Button } from "../components/ui/Button";
+import { ButtonLink } from "../components/ui/ButtonLink";
 import { TextArea } from "../components/ui/TextArea";
 import { useCloneExam } from "../hooks/useCloneExam";
 import { useToast } from "../hooks/useToast";
@@ -128,9 +129,9 @@ export function ExamEditorPage() {
           <Button onClick={() => clone(exam.id)} disabled={cloningId === exam.id}>
             {cloningId === exam.id ? "Cloning…" : "Clone exam"}
           </Button>
-          <Link to={`/exam/${exam.id}/details`}>
-            <Button variant="secondary">View analytics</Button>
-          </Link>
+          <ButtonLink to={`/exam/${exam.id}/details`} variant="secondary">
+            View analytics
+          </ButtonLink>
         </div>
       </div>
     );

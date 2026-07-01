@@ -139,7 +139,9 @@ function UserRow({ user }: { user: AdminUser }) {
         </p>
       </div>
 
-      {/* Admins are not manageable here; only teachers/students can be toggled. */}
+      {/* Admins are not manageable here; only teachers/students can be toggled.
+          Each action's accessible name includes the user so screen-reader users
+          tabbing the list always know which account it affects. */}
       {user.role !== "admin" &&
         (deactivated ? (
           <Button
@@ -147,6 +149,7 @@ function UserRow({ user }: { user: AdminUser }) {
             size="sm"
             disabled={busy}
             onClick={() => reactivate(user.id)}
+            aria-label={`Reactivate ${user.name}`}
           >
             {reactivating ? "Reactivating…" : "Reactivate"}
           </Button>
@@ -156,6 +159,7 @@ function UserRow({ user }: { user: AdminUser }) {
             size="sm"
             disabled={busy}
             onClick={() => deactivate(user.id)}
+            aria-label={`Deactivate ${user.name}`}
             className="border-red-200 text-red-600 hover:bg-red-50 dark:border-red-500/30 dark:text-red-400 dark:hover:bg-red-500/10"
           >
             {deactivating ? "Deactivating…" : "Deactivate"}

@@ -1,7 +1,7 @@
-import { Link } from "react-router-dom";
 import type { StudentDashboardExam } from "../../types/studentDashboard";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
+import { ButtonLink } from "../ui/ButtonLink";
 import { Card } from "../ui/Card";
 
 const TINT = {
@@ -98,24 +98,26 @@ export function StudentExamCard({ exam }: StudentExamCardProps) {
             {primaryLabel}
           </Button>
         ) : (
-          <Link to={primaryTo}>
-            <Button
-              variant="secondary"
-              size="sm"
-              className={submitted && !canRetake ? TINT.amber : TINT.blue}
-            >
-              {primaryLabel}
-            </Button>
-          </Link>
+          <ButtonLink
+            to={primaryTo}
+            variant="secondary"
+            size="sm"
+            className={submitted && !canRetake ? TINT.amber : TINT.blue}
+          >
+            {primaryLabel}
+          </ButtonLink>
         )}
 
         {/* When a retake is offered, still let the student review their best result. */}
         {canRetake && showViewResult && (
-          <Link to={`/results/${exam.id}/${exam.bestAttemptId}`}>
-            <Button variant="secondary" size="sm" className={TINT.amber}>
-              View result
-            </Button>
-          </Link>
+          <ButtonLink
+            to={`/results/${exam.id}/${exam.bestAttemptId}`}
+            variant="secondary"
+            size="sm"
+            className={TINT.amber}
+          >
+            View result
+          </ButtonLink>
         )}
       </div>
     </Card>

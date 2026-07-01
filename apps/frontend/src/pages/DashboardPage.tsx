@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { useAuth } from "../auth/useAuth";
 import { ExamCardGrid } from "../components/exams/ExamCardGrid";
 import { UserList } from "../components/users/UserList";
-import { Button } from "../components/ui/Button";
+import { ButtonLink } from "../components/ui/ButtonLink";
 import { StatCard } from "../components/ui/StatCard";
 import { useGetAdminDashboardQuery } from "../store/adminApi";
 import type { UserRole } from "../types/user";
@@ -16,11 +15,7 @@ const ROLE_SUMMARY: Record<UserRole, string> = {
 };
 
 function CreateExamButton() {
-  return (
-    <Link to="/exams/new">
-      <Button>Create exam</Button>
-    </Link>
-  );
+  return <ButtonLink to="/exams/new">Create exam</ButtonLink>;
 }
 
 // Options for the user role filter; "" means all roles.
@@ -75,9 +70,7 @@ function AdminOverview() {
                 </svg>
               </span>
             </label>
-            <Link to="/users/new">
-              <Button>Create user</Button>
-            </Link>
+            <ButtonLink to="/users/new">Create user</ButtonLink>
           </div>
         </div>
         <UserList role={roleFilter || undefined} />
