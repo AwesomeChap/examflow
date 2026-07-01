@@ -26,9 +26,9 @@ describe("exam detail", () => {
     expect(screen.getByText("Covers chapters 1–4.")).toBeInTheDocument();
     expect(screen.getByText("90 minutes")).toBeInTheDocument();
     expect(screen.getByText("Published")).toBeInTheDocument();
-    // Analytics placeholder is present but empty.
-    expect(screen.getByRole("heading", { name: /analytics/i })).toBeInTheDocument();
-    expect(screen.getByText(/analytics for this exam will appear here/i)).toBeInTheDocument();
+    // With no submissions yet, the analytics section shows its empty state.
+    expect(await screen.findByRole("heading", { name: /analytics/i })).toBeInTheDocument();
+    expect(screen.getByText(/no submissions yet/i)).toBeInTheDocument();
   });
 
   it("shows a not-found message for an inaccessible exam", async () => {

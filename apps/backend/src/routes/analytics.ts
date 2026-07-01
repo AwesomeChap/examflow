@@ -31,7 +31,7 @@ analyticsRouter.get("/", async (req: Request, res: Response) => {
       }),
       prisma.attempt.findMany({
         where: { examId },
-        select: { submittedAt: true, score: true },
+        select: { startedAt: true, submittedAt: true, score: true },
       }),
       // Only graded answers from submitted attempts feed correctness stats.
       prisma.answer.findMany({

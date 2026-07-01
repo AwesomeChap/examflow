@@ -21,6 +21,7 @@ type AnalyticsQuestion = {
 };
 
 type AnalyticsAttempt = {
+  startedAt: Date;
   submittedAt: Date | null;
   score: number | null;
 };
@@ -44,6 +45,24 @@ function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
+/** Median of a numeric list. Returns null for an empty list. */
+function median(values: number[]): number | null {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0
+    ? (sorted[mid - 1] + sorted[mid]) / 2
+    : sorted[mid];
+}
+
+/** Population standard deviation. Returns 0 for fewer than two values. */
+function stdDev(values: number[], mean: number): number {
+  if (values.length < 2) return 0;
+  const variance =
+    values.reduce((sum, v) => sum + (v - mean) ** 2, 0) / values.length;
+  return Math.sqrt(variance);
+}
+
 export function buildExamAnalytics(
   exam: AnalyticsExam,
   questions: AnalyticsQuestion[],
@@ -65,6 +84,14 @@ export function buildExamAnalytics(
     submittedCount > 0 ? round2(toPct(totalScore / submittedCount)) : 0;
   const highestScore = submittedCount > 0 ? Math.max(...scores) : null;
   const lowestScore = submittedCount > 0 ? Math.min(...scores) : null;
+
+  // Median + standard deviation let the client draw a normal-distribution
+  // (bell) curve over the histogram. Kept in the score domain; because
+  // percentage is a linear transform of score, the client can rescale by
+  // maxScore without losing accuracy.
+  const meanScore = submittedCount > 0 ? totalScore / submittedCount : 0;
+  const medianScore = median(scores);
+  const stdDevScore = round2(stdDev(scores, meanScore));
 
   // ----- Score distribution (by percentage band) -----
   const distribution = DISTRIBUTION_BANDS.map((band) => ({
@@ -96,6 +123,21 @@ export function buildExamAnalytics(
     }
   }
 
+  // ----- Completion time (submitted attempts only) -----
+  const durationsMs = submitted
+    .map((a) =>
+      a.submittedAt ? a.submittedAt.getTime() - a.startedAt.getTime() : null,
+    )
+    .filter((d): d is number => d !== null && d >= 0);
+  const averageDurationMs =
+    durationsMs.length > 0
+      ? Math.round(durationsMs.reduce((sum, d) => sum + d, 0) / durationsMs.length)
+      : null;
+  const medianDurationMsRaw = median(durationsMs);
+  const medianDurationMs =
+    medianDurationMsRaw === null ? null : Math.round(medianDurationMsRaw);
+
+  // ----- Per-question correctness -----
   const perQuestion = questions.map((q) => {
     const answered = answeredByQuestion.get(q.id) ?? 0;
     const correct = correctByQuestion.get(q.id) ?? 0;
@@ -137,7 +179,13 @@ export function buildExamAnalytics(
       averagePercentage,
       highestScore,
       lowestScore,
+      medianScore,
+      stdDev: stdDevScore,
       distribution,
+    },
+    timing: {
+      averageDurationMs,
+      medianDurationMs,
     },
     questions: perQuestion,
   };

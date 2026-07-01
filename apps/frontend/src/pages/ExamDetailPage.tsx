@@ -1,4 +1,5 @@
 import { Link, useParams } from "react-router-dom";
+import { ExamAnalytics } from "../components/analytics/ExamAnalytics";
 import { ExamStatusBadge } from "../components/exams/ExamStatusBadge";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
@@ -89,14 +90,7 @@ export function ExamDetailPage() {
         </dl>
       </Card>
 
-      <Card className="p-5">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-          Analytics
-        </h2>
-        <p className="text-slate-500 dark:text-slate-400">
-          Analytics for this exam will appear here.
-        </p>
-      </Card>
+      <ExamAnalytics examId={exam.id} />
     </section>
   );
 }

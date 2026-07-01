@@ -8,6 +8,7 @@ import "./assignmentsApi";
 import "./adminApi";
 import "./studentApi";
 import "./attemptsApi";
+import "./analyticsApi";
 
 export function createStore() {
   return configureStore({

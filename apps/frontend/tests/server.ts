@@ -83,7 +83,61 @@ const assignmentsByExam = new Map<string, Set<string>>();
 const attemptsByKey = new Map<string, Attempt>();
 /** When set, overrides attempt deadline offset (ms) for timer/autosubmit tests. */
 let testAttemptDurationMs: number | null = null;
+/** Pre-built analytics payloads keyed by exam id. */
+const analyticsByExam = new Map<string, unknown>();
 let idCounter = 0;
+
+export function seedAnalytics(examId: string, analytics: unknown) {
+  analyticsByExam.set(examId, analytics);
+}
+
+/** A zeroed, well-formed analytics payload (used when none was explicitly seeded). */
+function defaultAnalytics(examId: string) {
+  const exam = examFixtures.find((e) => e.id === examId);
+  const questions = questionsByExam.get(examId) ?? [];
+  const maxScore = questions.reduce((sum, q) => sum + q.points, 0);
+  return {
+    exam: {
+      id: examId,
+      title: exam?.title ?? "Exam",
+      totalQuestions: questions.length,
+      maxScore,
+    },
+    attempts: {
+      total: 0,
+      submitted: 0,
+      inProgress: 0,
+      assignedStudents: assignmentsByExam.get(examId)?.size ?? 0,
+      completionRate: 0,
+    },
+    score: {
+      averageScore: 0,
+      averagePercentage: 0,
+      highestScore: null,
+      lowestScore: null,
+      medianScore: null,
+      stdDev: 0,
+      distribution: [
+        { label: "0-20", min: 0, max: 20, count: 0 },
+        { label: "20-40", min: 20, max: 40, count: 0 },
+        { label: "40-60", min: 40, max: 60, count: 0 },
+        { label: "60-80", min: 60, max: 80, count: 0 },
+        { label: "80-100", min: 80, max: 100, count: 0 },
+      ],
+    },
+    timing: { averageDurationMs: null, medianDurationMs: null },
+    questions: questions.map((q) => ({
+      questionId: q.id,
+      order: q.order,
+      text: q.text,
+      type: q.type,
+      points: q.points,
+      answered: 0,
+      correct: 0,
+      correctRate: 0,
+    })),
+  };
+}
 
 function nextId(prefix: string): string {
   idCounter += 1;
@@ -233,6 +287,7 @@ export function resetSession() {
   studentFixtures = [];
   assignmentsByExam.clear();
   attemptsByKey.clear();
+  analyticsByExam.clear();
   testAttemptDurationMs = null;
   idCounter = 0;
   capturedRequests.questionCreate.length = 0;
@@ -652,6 +707,15 @@ export const handlers = [
       return HttpResponse.json({ error: "Not submitted" }, { status: 409 });
     }
     return HttpResponse.json({ result: gradeAttempt(examId, attempt) });
+  }),
+
+  http.get(`${API}/exams/:examId/analytics`, ({ params }) => {
+    if (!activeSession || activeSession.role === "student") {
+      return HttpResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    const examId = params.examId as string;
+    const analytics = analyticsByExam.get(examId) ?? defaultAnalytics(examId);
+    return HttpResponse.json({ analytics });
   }),
 ];
 

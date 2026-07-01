@@ -187,6 +187,26 @@ describe("per-exam analytics", () => {
       assert.equal(s.highestScore, 5);
       assert.equal(s.lowestScore, 0);
     });
+
+    it("reports median and standard deviation for the distribution curve", async () => {
+      const res = await ownerAgent.get(`/exams/${examId}/analytics`);
+      const s = res.body.analytics.score;
+
+      assert.equal(s.medianScore, 2); // sorted [0, 2, 5]
+      assert.equal(s.stdDev, 2.05); // population std dev of [5, 2, 0]
+    });
+  });
+
+  describe("completion time", () => {
+    it("reports non-negative average and median durations", async () => {
+      const res = await ownerAgent.get(`/exams/${examId}/analytics`);
+      const t = res.body.analytics.timing;
+
+      assert.equal(typeof t.averageDurationMs, "number");
+      assert.ok(t.averageDurationMs >= 0);
+      assert.equal(typeof t.medianDurationMs, "number");
+      assert.ok(t.medianDurationMs >= 0);
+    });
   });
 
   describe("score distribution", () => {
@@ -246,6 +266,10 @@ describe("per-exam analytics", () => {
       assert.equal(an.score.averageScore, 0);
       assert.equal(an.score.highestScore, null);
       assert.equal(an.score.lowestScore, null);
+      assert.equal(an.score.medianScore, null);
+      assert.equal(an.score.stdDev, 0);
+      assert.equal(an.timing.averageDurationMs, null);
+      assert.equal(an.timing.medianDurationMs, null);
       for (const band of an.score.distribution) {
         assert.equal(band.count, 0);
       }
