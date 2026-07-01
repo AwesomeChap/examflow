@@ -2,8 +2,10 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import type { NextFunction, Request, Response } from "express";
+import swaggerUi from "swagger-ui-express";
 import { env } from "./lib/env.js";
 import { sendError } from "./lib/http.js";
+import { openApiDocument } from "./openapi.js";
 import { adminRouter } from "./routes/admin.js";
 import { authRouter } from "./routes/auth.js";
 import { examsRouter } from "./routes/exams.js";
@@ -29,6 +31,18 @@ export function createApp() {
   app.get("/health", (_req, res) => {
     res.json({ status: "ok" });
   });
+
+  // API documentation: raw OpenAPI spec + interactive Swagger UI.
+  app.get("/openapi.json", (_req, res) => {
+    res.json(openApiDocument);
+  });
+  app.use(
+    "/docs",
+    swaggerUi.serve,
+    swaggerUi.setup(openApiDocument as swaggerUi.JsonObject, {
+      customSiteTitle: "ExamFlow API docs",
+    }),
+  );
 
   app.use("/auth", authRouter);
   app.use("/me", meRouter);
