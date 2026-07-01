@@ -2,6 +2,16 @@
 
 A role-based exam platform: admins provision accounts, teachers build and schedule exams, and students sit them in a timed, auto-graded flow — each role sees only what belongs to it.
 
+## Live demo
+
+| | URL |
+| --- | --- |
+| Web app | https://examflow-web-e34w.onrender.com |
+| API | https://examflow-api.onrender.com |
+| API docs | https://examflow-api.onrender.com/docs |
+
+The API runs on Render’s free tier, so the first request after idle time can take ~30–60 seconds to wake up.
+
 ---
 
 ## What it does
