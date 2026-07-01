@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { AddQuestionMenu } from "../components/exams/AddQuestionMenu";
 import { QuestionForm } from "../components/exams/QuestionForm";
@@ -78,6 +78,7 @@ export function ExamEditorPage() {
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [deletingId, setDeletingId] = useState<string>();
   const [actionError, setActionError] = useState<string | null>(null);
+  const addQuestionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (exam) {
@@ -93,6 +94,18 @@ export function ExamEditorPage() {
   useEffect(() => {
     setSelected(assignedIds);
   }, [assignedIds]);
+
+  // When the "add question" form opens, pull the whole block into view so its
+  // bottom (options + save action) isn't left below the fold. `block: "nearest"`
+  // scrolls up just enough to reveal it and stays put if it's already visible.
+  useEffect(() => {
+    if (mode.kind === "add") {
+      addQuestionRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
+    }
+  }, [mode]);
 
   const editable = useMemo(() => (exam ? isExamEditable(exam) : true), [exam]);
 
@@ -414,7 +427,10 @@ export function ExamEditorPage() {
           )}
 
           {mode.kind === "add" && (
-            <div className="mt-4 rounded-2xl border border-slate-200 p-5 dark:border-slate-800">
+            <div
+              ref={addQuestionRef}
+              className="mt-4 scroll-mb-6 rounded-2xl border border-slate-200 p-5 dark:border-slate-800"
+            >
               <QuestionForm
                 initialType={mode.type}
                 number={questions.length + 1}
