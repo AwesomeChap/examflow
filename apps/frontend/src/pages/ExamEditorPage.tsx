@@ -34,9 +34,6 @@ import type { Question, QuestionType } from "@examflow/shared-types";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
-type Mode =
-  { kind: "idle" } | { kind: "add"; type: QuestionType } | { kind: "edit"; question: Question };
-
 /** ISO string -> value for <input type="datetime-local"> (local time). */
 function toLocalInput(iso: string | null): string {
   if (!iso) return "";
@@ -74,7 +71,10 @@ export function ExamEditorPage() {
   const [maxAttempts, setMaxAttempts] = useState<number>(1);
   const [unlimitedAttempts, setUnlimitedAttempts] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
-  const [mode, setMode] = useState<Mode>({ kind: "idle" });
+  // Adding and editing are independent: a teacher can open the "new question"
+  // form and still edit an existing question inline at the same time.
+  const [addType, setAddType] = useState<QuestionType | null>(null);
+  const [editing, setEditing] = useState<Question | null>(null);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [deletingId, setDeletingId] = useState<string>();
   const [actionError, setActionError] = useState<string | null>(null);
@@ -99,13 +99,13 @@ export function ExamEditorPage() {
   // bottom (options + save action) isn't left below the fold. `block: "nearest"`
   // scrolls up just enough to reveal it and stays put if it's already visible.
   useEffect(() => {
-    if (mode.kind === "add") {
+    if (addType) {
       addQuestionRef.current?.scrollIntoView({
         behavior: "smooth",
         block: "nearest",
       });
     }
-  }, [mode]);
+  }, [addType]);
 
   const editable = useMemo(() => (exam ? isExamEditable(exam) : true), [exam]);
 
@@ -191,15 +191,22 @@ export function ExamEditorPage() {
     }
   };
 
-  const submitQuestion = async (body: QuestionBody) => {
+  const createNewQuestion = async (body: QuestionBody) => {
     setActionError(null);
     try {
-      if (mode.kind === "edit") {
-        await updateQuestion({ examId: exam.id, questionId: mode.question.id, body }).unwrap();
-      } else {
-        await createQuestion({ examId: exam.id, body }).unwrap();
-      }
-      setMode({ kind: "idle" });
+      await createQuestion({ examId: exam.id, body }).unwrap();
+      setAddType(null);
+    } catch {
+      setActionError("Could not save the question.");
+    }
+  };
+
+  const saveEditedQuestion = async (body: QuestionBody) => {
+    if (!editing) return;
+    setActionError(null);
+    try {
+      await updateQuestion({ examId: exam.id, questionId: editing.id, body }).unwrap();
+      setEditing(null);
     } catch {
       setActionError("Could not save the question.");
     }
@@ -409,41 +416,41 @@ export function ExamEditorPage() {
           {!loadingQuestions && (
             <QuestionList
               questions={questions}
-              onEdit={(question) => setMode({ kind: "edit", question })}
+              onEdit={(question) => setEditing(question)}
               onDelete={removeQuestion}
               onReorder={handleReorder}
               deletingId={deletingId}
-              editingId={mode.kind === "edit" ? mode.question.id : undefined}
+              editingId={editing?.id}
               renderEditForm={(question, index) => (
                 <QuestionForm
                   initial={question}
                   number={index + 1}
                   submitting={updatingQuestion}
-                  onSubmit={submitQuestion}
-                  onCancel={() => setMode({ kind: "idle" })}
+                  onSubmit={saveEditedQuestion}
+                  onCancel={() => setEditing(null)}
                 />
               )}
             />
           )}
 
-          {mode.kind === "add" && (
+          {addType && (
             <div
               ref={addQuestionRef}
               className="mt-4 scroll-mb-6 rounded-2xl border border-slate-200 p-5 dark:border-slate-800"
             >
               <QuestionForm
-                initialType={mode.type}
+                initialType={addType}
                 number={questions.length + 1}
                 submitting={creating}
-                onSubmit={submitQuestion}
-                onCancel={() => setMode({ kind: "idle" })}
+                onSubmit={createNewQuestion}
+                onCancel={() => setAddType(null)}
               />
             </div>
           )}
 
-          {mode.kind === "idle" && (
+          {!addType && (
             <div className={questions.length > 0 ? "mt-4" : ""}>
-              <AddQuestionMenu onSelect={(type) => setMode({ kind: "add", type })} />
+              <AddQuestionMenu onSelect={(type) => setAddType(type)} />
             </div>
           )}
         </div>

@@ -77,6 +77,12 @@ globalThis.ResizeObserver = class {
   disconnect() {}
 };
 
+// jsdom does not implement scrollIntoView; stub it so components that scroll a
+// freshly opened form/question into view don't throw under test.
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = () => {};
+}
+
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 
 afterEach(() => {
