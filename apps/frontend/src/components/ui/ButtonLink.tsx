@@ -13,12 +13,6 @@ type ButtonLinkProps = LinkProps & {
  * nests a `<button>` inside an `<a>` — invalid HTML that confuses assistive
  * tech and keyboard interaction. This renders a single semantic link.
  */
-export function ButtonLink({
-  variant,
-  size,
-  fullWidth,
-  className,
-  ...props
-}: ButtonLinkProps) {
+export function ButtonLink({ variant, size, fullWidth, className, ...props }: ButtonLinkProps) {
   return <Link className={buttonClasses({ variant, size, fullWidth, className })} {...props} />;
 }

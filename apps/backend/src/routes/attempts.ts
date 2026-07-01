@@ -36,10 +36,7 @@ type ExamContext = {
 // Loads the exam (with its time limit + attempt policy) and confirms the
 // student is allowed to read it (i.e. is assigned). Returns null after sending a
 // 404 on failure so existence is never leaked.
-async function loadExamContext(
-  req: Request,
-  res: Response,
-): Promise<ExamContext | null> {
+async function loadExamContext(req: Request, res: Response): Promise<ExamContext | null> {
   const exam = await prisma.exam.findUnique({
     where: { id: param(req, "examId") },
     select: {
@@ -116,9 +113,7 @@ attemptsRouter.post("/", async (req: Request, res: Response) => {
     const attempt = await prisma.attempt.create({
       data: { examId: exam.id, userId },
     });
-    res
-      .status(201)
-      .json({ attempt: presentAttempt(attempt, exam.durationMin, []) });
+    res.status(201).json({ attempt: presentAttempt(attempt, exam.durationMin, []) });
   } catch (error) {
     if (handleKnownPrismaError(error, res)) return;
     throw error;
@@ -148,76 +143,73 @@ attemptsRouter.get("/", async (req: Request, res: Response) => {
 });
 
 // Store / update the answer to one question during the active attempt.
-attemptsRouter.put(
-  "/answers/:questionId",
-  async (req: Request, res: Response) => {
-    const exam = await loadExamContext(req, res);
-    if (!exam) return;
+attemptsRouter.put("/answers/:questionId", async (req: Request, res: Response) => {
+  const exam = await loadExamContext(req, res);
+  if (!exam) return;
 
-    const data = parseOr400(answerUpsertSchema, req.body, res);
-    if (!data) return;
+  const data = parseOr400(answerUpsertSchema, req.body, res);
+  if (!data) return;
 
-    const attempt = await findActiveAttempt(exam.id, req.user!.sub);
-    if (!attempt) {
-      sendError(res, 404, "Attempt not found");
-      return;
-    }
-    // Backend-enforced time limit: reject (and finalize) once expired.
-    if (isAttemptExpired(attempt.startedAt, exam.durationMin)) {
-      await finalizeAttempt(attempt, {
-        submittedAt: attemptDeadline(attempt.startedAt, exam.durationMin),
-      });
-      sendError(res, 409, "Attempt time limit reached");
-      return;
-    }
-
-    const questionId = param(req, "questionId");
-    const question = await prisma.question.findFirst({
-      where: { id: questionId, examId: exam.id },
-      select: { id: true, type: true, options: true },
+  const attempt = await findActiveAttempt(exam.id, req.user!.sub);
+  if (!attempt) {
+    sendError(res, 404, "Attempt not found");
+    return;
+  }
+  // Backend-enforced time limit: reject (and finalize) once expired.
+  if (isAttemptExpired(attempt.startedAt, exam.durationMin)) {
+    await finalizeAttempt(attempt, {
+      submittedAt: attemptDeadline(attempt.startedAt, exam.durationMin),
     });
-    if (!question) {
-      sendError(res, 404, "Question not found");
-      return;
-    }
-    if (!isValidAnswerValue(question, data.value)) {
-      sendError(res, 400, "Invalid answer for this question");
-      return;
-    }
+    sendError(res, 409, "Attempt time limit reached");
+    return;
+  }
 
-    // Persist the answer atomically, re-asserting the parent attempt is still
-    // open inside the transaction. A concurrent submit/finalize stamps
-    // `submittedAt`; guarding the write here closes the check-then-write gap so
-    // an answer can never land on (or after) an already-submitted attempt. If
-    // the attempt was submitted in the meantime, we skip the write and 409.
-    const answer = await prisma.$transaction(async (tx) => {
-      // Lock the attempt row (matching the lock finalizeAttempt takes) so a
-      // concurrent submit/finalize serializes with this write instead of
-      // interleaving. Re-read `submittedAt` under the lock: if the attempt has
-      // been submitted, skip the upsert and signal a conflict.
-      const locked = await tx.$queryRaw<{ submittedAt: Date | null }[]>`
+  const questionId = param(req, "questionId");
+  const question = await prisma.question.findFirst({
+    where: { id: questionId, examId: exam.id },
+    select: { id: true, type: true, options: true },
+  });
+  if (!question) {
+    sendError(res, 404, "Question not found");
+    return;
+  }
+  if (!isValidAnswerValue(question, data.value)) {
+    sendError(res, 400, "Invalid answer for this question");
+    return;
+  }
+
+  // Persist the answer atomically, re-asserting the parent attempt is still
+  // open inside the transaction. A concurrent submit/finalize stamps
+  // `submittedAt`; guarding the write here closes the check-then-write gap so
+  // an answer can never land on (or after) an already-submitted attempt. If
+  // the attempt was submitted in the meantime, we skip the write and 409.
+  const answer = await prisma.$transaction(async (tx) => {
+    // Lock the attempt row (matching the lock finalizeAttempt takes) so a
+    // concurrent submit/finalize serializes with this write instead of
+    // interleaving. Re-read `submittedAt` under the lock: if the attempt has
+    // been submitted, skip the upsert and signal a conflict.
+    const locked = await tx.$queryRaw<{ submittedAt: Date | null }[]>`
         SELECT "submittedAt" FROM "Attempt" WHERE id = ${attempt.id} FOR UPDATE
       `;
-      if (locked.length === 0 || locked[0].submittedAt !== null) return null;
+    if (locked.length === 0 || locked[0].submittedAt !== null) return null;
 
-      return tx.answer.upsert({
-        where: {
-          attemptId_questionId: { attemptId: attempt.id, questionId },
-        },
-        // Clear any stale grading; correctness is computed at finalize time.
-        create: { attemptId: attempt.id, questionId, value: data.value },
-        update: { value: data.value, isCorrect: null },
-      });
+    return tx.answer.upsert({
+      where: {
+        attemptId_questionId: { attemptId: attempt.id, questionId },
+      },
+      // Clear any stale grading; correctness is computed at finalize time.
+      create: { attemptId: attempt.id, questionId, value: data.value },
+      update: { value: data.value, isCorrect: null },
     });
+  });
 
-    if (!answer) {
-      sendError(res, 409, "Attempt already submitted");
-      return;
-    }
+  if (!answer) {
+    sendError(res, 409, "Attempt already submitted");
+    return;
+  }
 
-    res.json({ answer: { questionId: answer.questionId, value: answer.value } });
-  },
-);
+  res.json({ answer: { questionId: answer.questionId, value: answer.value } });
+});
 
 // Submit the active attempt (grades it) and return it.
 attemptsRouter.post("/submit", async (req: Request, res: Response) => {
@@ -243,9 +235,7 @@ attemptsRouter.post("/submit", async (req: Request, res: Response) => {
 
   // If the limit already passed, stamp the submission at the deadline.
   const expired = isAttemptExpired(attempt.startedAt, exam.durationMin);
-  const submittedAt = expired
-    ? attemptDeadline(attempt.startedAt, exam.durationMin)
-    : new Date();
+  const submittedAt = expired ? attemptDeadline(attempt.startedAt, exam.durationMin) : new Date();
 
   const finalized = await finalizeAttempt(attempt, { submittedAt });
   const answers = await listAnswers(finalized.id);
@@ -283,54 +273,46 @@ attemptsListRouter.get("/", async (req: Request, res: Response) => {
     score: a.submittedAt ? (a.score ?? 0) : null,
     maxScore,
     percentage:
-      a.submittedAt && maxScore > 0
-        ? Math.round(((a.score ?? 0) / maxScore) * 10000) / 100
-        : null,
+      a.submittedAt && maxScore > 0 ? Math.round(((a.score ?? 0) / maxScore) * 10000) / 100 : null,
   }));
 
   res.json({ attempts: summaries });
 });
 
 // Retrieve the processed result of one owned, submitted attempt.
-attemptsListRouter.get(
-  "/:attemptId/result",
-  async (req: Request, res: Response) => {
-    const exam = await loadExamContext(req, res);
-    if (!exam) return;
+attemptsListRouter.get("/:attemptId/result", async (req: Request, res: Response) => {
+  const exam = await loadExamContext(req, res);
+  if (!exam) return;
 
-    const attemptId = param(req, "attemptId");
-    const attempt = await prisma.attempt.findFirst({
-      where: { id: attemptId, examId: exam.id, userId: req.user!.sub },
+  const attemptId = param(req, "attemptId");
+  const attempt = await prisma.attempt.findFirst({
+    where: { id: attemptId, examId: exam.id, userId: req.user!.sub },
+  });
+  if (!attempt) {
+    sendError(res, 404, "Attempt not found");
+    return;
+  }
+
+  // Results only exist once submitted; finalize first if the limit has passed.
+  let current = attempt;
+  if (!attempt.submittedAt && isAttemptExpired(attempt.startedAt, exam.durationMin)) {
+    current = await finalizeAttempt(attempt, {
+      submittedAt: attemptDeadline(attempt.startedAt, exam.durationMin),
     });
-    if (!attempt) {
-      sendError(res, 404, "Attempt not found");
-      return;
-    }
+  }
+  if (!current.submittedAt) {
+    sendError(res, 409, "Attempt not yet submitted");
+    return;
+  }
 
-    // Results only exist once submitted; finalize first if the limit has passed.
-    let current = attempt;
-    if (
-      !attempt.submittedAt &&
-      isAttemptExpired(attempt.startedAt, exam.durationMin)
-    ) {
-      current = await finalizeAttempt(attempt, {
-        submittedAt: attemptDeadline(attempt.startedAt, exam.durationMin),
-      });
-    }
-    if (!current.submittedAt) {
-      sendError(res, 409, "Attempt not yet submitted");
-      return;
-    }
+  const [questions, answers] = await Promise.all([
+    prisma.question.findMany({
+      where: { examId: exam.id },
+      orderBy: { order: "asc" },
+      select: { id: true, points: true },
+    }),
+    listAnswers(current.id),
+  ]);
 
-    const [questions, answers] = await Promise.all([
-      prisma.question.findMany({
-        where: { examId: exam.id },
-        orderBy: { order: "asc" },
-        select: { id: true, points: true },
-      }),
-      listAnswers(current.id),
-    ]);
-
-    res.json({ result: buildAttemptResult(current, questions, answers) });
-  },
-);
+  res.json({ result: buildAttemptResult(current, questions, answers) });
+});

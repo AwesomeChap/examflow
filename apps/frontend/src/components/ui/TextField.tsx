@@ -15,8 +15,19 @@ type TextFieldProps = InputHTMLAttributes<HTMLInputElement> & {
 
 function EyeIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5" aria-hidden="true">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M2.5 12S5.5 5.5 12 5.5 21.5 12 21.5 12 18.5 18.5 12 18.5 2.5 12 2.5 12Z" />
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      className="h-5 w-5"
+      aria-hidden="true"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M2.5 12S5.5 5.5 12 5.5 21.5 12 21.5 12 18.5 18.5 12 18.5 2.5 12 2.5 12Z"
+      />
       <circle cx="12" cy="12" r="3" />
     </svg>
   );
@@ -24,9 +35,20 @@ function EyeIcon() {
 
 function EyeOffIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5" aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      className="h-5 w-5"
+      aria-hidden="true"
+    >
       <path strokeLinecap="round" strokeLinejoin="round" d="M3 3l18 18" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M10.6 6.1A8.7 8.7 0 0 1 12 6c6.5 0 9.5 6 9.5 6a16 16 0 0 1-2.6 3.4M6.1 7.6A16 16 0 0 0 2.5 12S5.5 18 12 18a8.7 8.7 0 0 0 3.4-.7" />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M10.6 6.1A8.7 8.7 0 0 1 12 6c6.5 0 9.5 6 9.5 6a16 16 0 0 1-2.6 3.4M6.1 7.6A16 16 0 0 0 2.5 12S5.5 18 12 18a8.7 8.7 0 0 0 3.4-.7"
+      />
     </svg>
   );
 }

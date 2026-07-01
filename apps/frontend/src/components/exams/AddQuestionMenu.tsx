@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import type { QuestionType } from "../../types/question";
+import type { QuestionType } from "@examflow/shared-types";
 
 type AddQuestionMenuProps = {
   onSelect: (type: QuestionType) => void;
@@ -104,7 +104,14 @@ export function AddQuestionMenu({ onSelect, disabled }: AddQuestionMenuProps) {
         aria-label="Add a question"
         className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-300 text-slate-500 transition hover:border-slate-900 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:opacity-50 dark:border-slate-600 dark:hover:border-slate-100 dark:hover:text-slate-100"
       >
-        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true">
+        <svg
+          viewBox="0 0 24 24"
+          className="h-5 w-5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          aria-hidden="true"
+        >
           <path strokeLinecap="round" d="M12 5v14M5 12h14" />
         </svg>
       </button>

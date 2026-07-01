@@ -51,8 +51,7 @@ export function CreateUserPage() {
     <section className="mx-auto max-w-lg">
       <h1 className="mb-1 text-3xl font-bold tracking-tight">Create user</h1>
       <p className="mb-6 text-slate-600 dark:text-slate-400">
-        The email address is generated automatically. Students also receive a
-        matriculation number.
+        The email address is generated automatically. Students also receive a matriculation number.
       </p>
 
       <Card className="p-6 sm:p-8">
@@ -69,12 +68,7 @@ export function CreateUserPage() {
 
           <div className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Role</span>
-            <SegmentedControl
-              label="Role"
-              options={ROLE_OPTIONS}
-              value={role}
-              onChange={setRole}
-            />
+            <SegmentedControl label="Role" options={ROLE_OPTIONS} value={role} onChange={setRole} />
           </div>
 
           <TextField

@@ -5,6 +5,7 @@ import { handleKnownPrismaError, sendError } from "../lib/http.js";
 import { param } from "../lib/params.js";
 import { prisma } from "../lib/prisma.js";
 import { createProvisionedUser } from "../lib/userProvisioning.js";
+import { userPublicSelect } from "../lib/userSelect.js";
 import { parseOr400 } from "../lib/validation.js";
 import { requireAdmin, requireAuth } from "../middleware/auth.js";
 import { userCreateSchema, userListQuerySchema } from "../validation/schemas.js";
@@ -13,17 +14,6 @@ export const adminRouter = Router();
 
 // Admin-only area: every route under /admin requires an authenticated admin.
 adminRouter.use(requireAuth, requireAdmin);
-
-// Fields safe to expose for user management (no password hash).
-const userSelect = {
-  id: true,
-  name: true,
-  email: true,
-  role: true,
-  matriculationNumber: true,
-  deactivatedAt: true,
-  createdAt: true,
-} as const;
 
 // System dashboard / stats. Counts reflect *active* users only, since
 // deactivated accounts are effectively removed from the platform.
@@ -56,7 +46,7 @@ adminRouter.get("/users", async (req: Request, res: Response) => {
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * pageSize,
       take: pageSize,
-      select: userSelect,
+      select: userPublicSelect,
     }),
   ]);
 
@@ -109,30 +99,27 @@ adminRouter.delete("/users/:userId", async (req: Request, res: Response) => {
   const user = await prisma.user.update({
     where: { id: userId },
     data: { deactivatedAt: new Date() },
-    select: userSelect,
+    select: userPublicSelect,
   });
   res.json({ user });
 });
 
 // Reactivate a previously deactivated user.
-adminRouter.post(
-  "/users/:userId/reactivate",
-  async (req: Request, res: Response) => {
-    const userId = param(req, "userId");
-    const target = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true },
-    });
-    if (!target) {
-      sendError(res, 404, "User not found");
-      return;
-    }
+adminRouter.post("/users/:userId/reactivate", async (req: Request, res: Response) => {
+  const userId = param(req, "userId");
+  const target = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true },
+  });
+  if (!target) {
+    sendError(res, 404, "User not found");
+    return;
+  }
 
-    const user = await prisma.user.update({
-      where: { id: userId },
-      data: { deactivatedAt: null },
-      select: userSelect,
-    });
-    res.json({ user });
-  },
-);
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: { deactivatedAt: null },
+    select: userPublicSelect,
+  });
+  res.json({ user });
+});

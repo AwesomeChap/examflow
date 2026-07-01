@@ -1,3 +1,5 @@
+import type { QuestionType } from "./question.js";
+
 export type DistributionBand = {
   label: string;
   min: number;
@@ -9,7 +11,7 @@ export type QuestionAnalytics = {
   questionId: string;
   order: number;
   text: string;
-  type: "mcq" | "true_false";
+  type: QuestionType;
   points: number;
   answered: number;
   correct: number;

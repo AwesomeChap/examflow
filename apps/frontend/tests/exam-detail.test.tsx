@@ -33,9 +33,7 @@ describe("exam detail", () => {
 
   it("shows a not-found message for an inaccessible exam", async () => {
     seedSession(toPublic("teacher"));
-    seedExams([
-      makeExam({ id: "owned-by-other", title: "Hidden", createdById: "someone-else" }),
-    ]);
+    seedExams([makeExam({ id: "owned-by-other", title: "Hidden", createdById: "someone-else" })]);
     renderApp("/exam/owned-by-other/details");
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/not found|do not have access/i);

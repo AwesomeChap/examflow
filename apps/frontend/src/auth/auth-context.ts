@@ -1,6 +1,6 @@
 import { createContext } from "react";
 import type { LoginPayload } from "../api/client";
-import type { User } from "../types/user";
+import type { User } from "@examflow/shared-types";
 
 export type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 

@@ -1,4 +1,4 @@
-import type { StudentQuestion } from "../../types/studentQuestion";
+import type { StudentQuestion } from "@examflow/shared-types";
 import { formatAnswerDisplay } from "../../lib/formatAnswer";
 
 type ExamQuestionPanelProps = {
@@ -27,7 +27,8 @@ export function ExamQuestionPanel({
 }: ExamQuestionPanelProps) {
   const preview = correctValue !== undefined;
   const readOnly = disabled || preview;
-  const options = question.type === "mcq" && question.options ? question.options : ["true", "false"];
+  const options =
+    question.type === "mcq" && question.options ? question.options : ["true", "false"];
   const isTrueFalse = question.type !== "mcq";
 
   return (
@@ -43,7 +44,11 @@ export function ExamQuestionPanel({
       </div>
 
       <fieldset className="space-y-2" disabled={readOnly}>
-        <legend className={preview ? "mb-1 text-sm font-medium text-slate-700 dark:text-slate-200" : "sr-only"}>
+        <legend
+          className={
+            preview ? "mb-1 text-sm font-medium text-slate-700 dark:text-slate-200" : "sr-only"
+          }
+        >
           {preview ? "Answer options" : "Choose an answer"}
         </legend>
         {options.map((option) => {
@@ -60,7 +65,9 @@ export function ExamQuestionPanel({
                   : selected
                     ? "border-blue-400 bg-blue-50 dark:border-blue-500/40 dark:bg-blue-500/10"
                     : "border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-950",
-                readOnly ? "cursor-default" : "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900",
+                readOnly
+                  ? "cursor-default"
+                  : "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900",
                 disabled && "opacity-60",
               ]
                 .filter(Boolean)
@@ -73,7 +80,9 @@ export function ExamQuestionPanel({
                 onChange={() => onChange?.(option)}
                 className={isCorrect ? "h-4 w-4 accent-green-600" : "h-4 w-4 accent-blue-600"}
               />
-              <span className="text-slate-900 dark:text-slate-100">{formatAnswerDisplay(option)}</span>
+              <span className="text-slate-900 dark:text-slate-100">
+                {formatAnswerDisplay(option)}
+              </span>
               {isCorrect && (
                 <span className="ml-auto text-xs font-semibold text-green-700 dark:text-green-400">
                   Correct answer

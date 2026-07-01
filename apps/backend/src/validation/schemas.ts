@@ -21,15 +21,27 @@ export type LoginInput = z.infer<typeof loginSchema>;
 
 export const examStatusSchema = z.enum(["draft", "published"]);
 
+// Scheduled open time. Enforce a standard ISO 8601 datetime string at the
+// gateway (rather than loosely coercing arbitrary date-like input), and reject
+// times in the past — a start time that has already elapsed would mean the exam
+// is instantly open, which is never the intent when scheduling. `null`/omitted
+// means the exam is available immediately. A small grace window absorbs request
+// latency and minor client/server clock skew.
+const STARTS_AT_GRACE_MS = 60_000;
+const startsAtSchema = z
+  .string()
+  .datetime()
+  .nullish()
+  .refine((value) => value == null || new Date(value).getTime() > Date.now() - STARTS_AT_GRACE_MS, {
+    message: "startsAt cannot be in the past",
+  });
+
 export const examCreateSchema = z.object({
   title: z.string().trim().min(1).max(200),
   description: z.string().trim().max(2000).nullish(),
   durationMin: z.number().int().positive().max(1440).optional(),
   status: examStatusSchema.optional(),
-  // Scheduled open time; null/omitted means the exam is available immediately.
-  // Enforce a standard ISO 8601 datetime string at the gateway rather than
-  // loosely coercing arbitrary date-like input.
-  startsAt: z.string().datetime().nullish(),
+  startsAt: startsAtSchema,
   // Allowed attempts per student; null means unlimited.
   maxAttempts: z.number().int().min(1).max(100).nullish(),
 });
@@ -40,8 +52,7 @@ export const examUpdateSchema = z
     description: z.string().trim().max(2000).nullish(),
     durationMin: z.number().int().positive().max(1440).optional(),
     status: examStatusSchema.optional(),
-    // Strict ISO 8601 datetime, consistent with examCreateSchema.
-    startsAt: z.string().datetime().nullish(),
+    startsAt: startsAtSchema,
     maxAttempts: z.number().int().min(1).max(100).nullish(),
   })
   .refine((obj) => Object.keys(obj).length > 0, {
@@ -116,12 +127,7 @@ export const questionPatchSchema = z
   .object({
     type: z.enum(["mcq", "true_false"]).optional(),
     text: z.string().trim().min(1).max(1000).optional(),
-    options: z
-      .array(z.string().trim().min(1).max(500))
-      .min(2)
-      .max(10)
-      .nullable()
-      .optional(),
+    options: z.array(z.string().trim().min(1).max(500)).min(2).max(10).nullable().optional(),
     correctAnswer: z.string().trim().min(1).max(500).optional(),
     order: z.number().int().positive().optional(),
     points: z.number().int().positive().max(100).optional(),

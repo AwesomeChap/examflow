@@ -30,14 +30,12 @@ import {
   useUpdateQuestionMutation,
 } from "../store/questionsApi";
 import { useGetStudentsQuery } from "../store/studentsApi";
-import type { Question, QuestionType } from "../types/question";
+import type { Question, QuestionType } from "@examflow/shared-types";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
 type Mode =
-  | { kind: "idle" }
-  | { kind: "add"; type: QuestionType }
-  | { kind: "edit"; question: Question };
+  { kind: "idle" } | { kind: "add"; type: QuestionType } | { kind: "edit"; question: Question };
 
 /** ISO string -> value for <input type="datetime-local"> (local time). */
 function toLocalInput(iso: string | null): string {
@@ -261,7 +259,11 @@ export function ExamEditorPage() {
               Unpublish
             </Button>
           ) : (
-            <Button onClick={publish} disabled={!canPublish} title={canPublish ? undefined : "Add a question first"}>
+            <Button
+              onClick={publish}
+              disabled={!canPublish}
+              title={canPublish ? undefined : "Add a question first"}
+            >
               Publish
             </Button>
           )}
@@ -278,7 +280,10 @@ export function ExamEditorPage() {
         {/* Metadata above the title */}
         <div className="mb-8 flex flex-wrap items-end gap-x-6 gap-y-4 rounded-xl border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-800 dark:bg-slate-900/40">
           <div>
-            <label htmlFor="duration" className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+            <label
+              htmlFor="duration"
+              className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400"
+            >
               Duration (minutes)
             </label>
             <input
@@ -293,7 +298,10 @@ export function ExamEditorPage() {
             />
           </div>
           <div>
-            <label htmlFor="startsAt" className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+            <label
+              htmlFor="startsAt"
+              className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400"
+            >
               Opens at (optional)
             </label>
             <input
@@ -307,7 +315,10 @@ export function ExamEditorPage() {
             />
           </div>
           <div>
-            <label htmlFor="maxAttempts" className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+            <label
+              htmlFor="maxAttempts"
+              className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400"
+            >
               Attempts allowed
             </label>
             <div className="flex items-center gap-3">

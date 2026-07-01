@@ -1,11 +1,20 @@
-export type { Answer } from "./answer.js";
-export type { ExamAssignment } from "./assignment.js";
-export type { Attempt } from "./attempt.js";
-export type { Exam } from "./exam.js";
+export type { AdminUser, Student, User, UserRole } from "./user.js";
 export type {
-  McqQuestion,
-  Question,
-  QuestionType,
-  TrueFalseQuestion,
-} from "./question.js";
-export type { User, UserRole } from "./user.js";
+  Exam,
+  ExamCounts,
+  ExamCreator,
+  ExamDetail,
+  ExamListItem,
+  ExamStatus,
+  Paginated,
+} from "./exam.js";
+export type { Question, QuestionDraft, QuestionType, StudentQuestion } from "./question.js";
+export type {
+  Attempt,
+  AttemptAnswer,
+  AttemptResult,
+  AttemptSummary,
+  ResultBreakdownItem,
+} from "./attempt.js";
+export type { StudentAttemptStatus, StudentDashboardExam } from "./student-dashboard.js";
+export type { DistributionBand, ExamAnalytics, QuestionAnalytics } from "./analytics.js";

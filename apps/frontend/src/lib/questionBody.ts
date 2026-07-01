@@ -1,5 +1,5 @@
 import type { QuestionBody } from "../store/questionsApi";
-import type { Question } from "../types/question";
+import type { Question } from "@examflow/shared-types";
 
 /** Maps a stored question into the request body accepted by the API. */
 export function toQuestionBody(question: Question): QuestionBody {

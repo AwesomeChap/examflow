@@ -56,16 +56,13 @@ function median(values: number[]): number | null {
   if (values.length === 0) return null;
   const sorted = [...values].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0
-    ? (sorted[mid - 1] + sorted[mid]) / 2
-    : sorted[mid];
+  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
 }
 
 /** Population standard deviation. Returns 0 for fewer than two values. */
 function stdDev(values: number[], mean: number): number {
   if (values.length < 2) return 0;
-  const variance =
-    values.reduce((sum, v) => sum + (v - mean) ** 2, 0) / values.length;
+  const variance = values.reduce((sum, v) => sum + (v - mean) ** 2, 0) / values.length;
   return Math.sqrt(variance);
 }
 
@@ -91,8 +88,7 @@ export function buildExamAnalytics(
   const totalScore = scores.reduce((sum, s) => sum + s, 0);
   const averageScore = submittedCount > 0 ? round2(totalScore / submittedCount) : 0;
   const toPct = (score: number) => (maxScore > 0 ? (score / maxScore) * 100 : 0);
-  const averagePercentage =
-    submittedCount > 0 ? round2(toPct(totalScore / submittedCount)) : 0;
+  const averagePercentage = submittedCount > 0 ? round2(toPct(totalScore / submittedCount)) : 0;
   const highestScore = submittedCount > 0 ? Math.max(...scores) : null;
   const lowestScore = submittedCount > 0 ? Math.min(...scores) : null;
 
@@ -111,10 +107,7 @@ export function buildExamAnalytics(
   }));
   for (const score of scores) {
     const pct = toPct(score);
-    const index = Math.min(
-      DISTRIBUTION_BANDS.length - 1,
-      Math.floor(pct / 20),
-    );
+    const index = Math.min(DISTRIBUTION_BANDS.length - 1, Math.floor(pct / 20));
     distribution[index].count += 1;
   }
 
@@ -122,31 +115,22 @@ export function buildExamAnalytics(
   const answeredByQuestion = new Map<string, number>();
   const correctByQuestion = new Map<string, number>();
   for (const answer of answers) {
-    answeredByQuestion.set(
-      answer.questionId,
-      (answeredByQuestion.get(answer.questionId) ?? 0) + 1,
-    );
+    answeredByQuestion.set(answer.questionId, (answeredByQuestion.get(answer.questionId) ?? 0) + 1);
     if (answer.isCorrect === true) {
-      correctByQuestion.set(
-        answer.questionId,
-        (correctByQuestion.get(answer.questionId) ?? 0) + 1,
-      );
+      correctByQuestion.set(answer.questionId, (correctByQuestion.get(answer.questionId) ?? 0) + 1);
     }
   }
 
   // ----- Completion time (submitted attempts only) -----
   const durationsMs = submitted
-    .map((a) =>
-      a.submittedAt ? a.submittedAt.getTime() - a.startedAt.getTime() : null,
-    )
+    .map((a) => (a.submittedAt ? a.submittedAt.getTime() - a.startedAt.getTime() : null))
     .filter((d): d is number => d !== null && d >= 0);
   const averageDurationMs =
     durationsMs.length > 0
       ? Math.round(durationsMs.reduce((sum, d) => sum + d, 0) / durationsMs.length)
       : null;
   const medianDurationMsRaw = median(durationsMs);
-  const medianDurationMs =
-    medianDurationMsRaw === null ? null : Math.round(medianDurationMsRaw);
+  const medianDurationMs = medianDurationMsRaw === null ? null : Math.round(medianDurationMsRaw);
 
   // ----- Per-question correctness -----
   const perQuestion = questions.map((q) => {
@@ -154,8 +138,7 @@ export function buildExamAnalytics(
     const correct = correctByQuestion.get(q.id) ?? 0;
     // Rate is over all submitted attempts: an unanswered question counts as
     // not-correct, which reflects how many test-takers actually got it right.
-    const correctRate =
-      submittedCount > 0 ? round2((correct / submittedCount) * 100) : 0;
+    const correctRate = submittedCount > 0 ? round2((correct / submittedCount) * 100) : 0;
     return {
       questionId: q.id,
       order: q.order,
@@ -182,10 +165,7 @@ export function buildExamAnalytics(
       submitted: submittedCount,
       inProgress: attemptTotals.inProgress,
       assignedStudents,
-      completionRate:
-        assignedStudents > 0
-          ? round2((submittedCount / assignedStudents) * 100)
-          : 0,
+      completionRate: assignedStudents > 0 ? round2((submittedCount / assignedStudents) * 100) : 0,
     },
     score: {
       averageScore,

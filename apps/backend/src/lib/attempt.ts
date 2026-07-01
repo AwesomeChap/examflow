@@ -28,15 +28,8 @@ export function isAttemptExpired(
 }
 
 /** Milliseconds left before auto-submit (never negative). */
-export function remainingMs(
-  startedAt: Date,
-  durationMin: number,
-  now: Date = new Date(),
-): number {
-  return Math.max(
-    0,
-    attemptDeadline(startedAt, durationMin).getTime() - now.getTime(),
-  );
+export function remainingMs(startedAt: Date, durationMin: number, now: Date = new Date()): number {
+  return Math.max(0, attemptDeadline(startedAt, durationMin).getTime() - now.getTime());
 }
 
 type AttemptToFinalize = {
@@ -88,9 +81,7 @@ export async function finalizeAttempt(
     let score = 0;
     for (const answer of answers) {
       const question = byQuestion.get(answer.questionId);
-      const isCorrect = question
-        ? answer.value === question.correctAnswer
-        : false;
+      const isCorrect = question ? answer.value === question.correctAnswer : false;
       if (isCorrect && question) {
         score += question.points;
         correctIds.push(answer.id);
@@ -211,8 +202,7 @@ export function buildAttemptResult(
   });
 
   const score = attempt.score ?? 0;
-  const percentage =
-    maxScore > 0 ? Math.round((score / maxScore) * 10000) / 100 : 0;
+  const percentage = maxScore > 0 ? Math.round((score / maxScore) * 10000) / 100 : 0;
 
   return {
     attemptId: attempt.id,
@@ -239,8 +229,6 @@ export function isValidAnswerValue(
   if (question.type === "true_false") {
     return value === "true" || value === "false";
   }
-  const options = Array.isArray(question.options)
-    ? (question.options as unknown[])
-    : [];
+  const options = Array.isArray(question.options) ? (question.options as unknown[]) : [];
   return options.includes(value);
 }

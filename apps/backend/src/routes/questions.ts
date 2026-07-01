@@ -30,10 +30,7 @@ async function nextOrder(examId: string): Promise<number> {
 }
 
 // Read guard: anyone allowed to read the exam may read its questions.
-async function ensureReadAccess(
-  req: Request,
-  res: Response,
-): Promise<boolean> {
+async function ensureReadAccess(req: Request, res: Response): Promise<boolean> {
   if (!(await canReadExam(req.user!, req.exam!))) {
     sendError(res, 404, "Exam not found");
     return false;
@@ -68,37 +65,32 @@ questionsRouter.get("/:questionId", async (req: Request, res: Response) => {
 });
 
 // Create a question (admin or owning teacher).
-questionsRouter.post(
-  "/",
-  requireStaff,
-  requireExamWrite,
-  async (req: Request, res: Response) => {
-    const data = parseOr400(questionCreateSchema, req.body, res);
-    if (!data) return;
+questionsRouter.post("/", requireStaff, requireExamWrite, async (req: Request, res: Response) => {
+  const data = parseOr400(questionCreateSchema, req.body, res);
+  if (!data) return;
 
-    const examId = req.exam!.id;
-    const order = data.order ?? (await nextOrder(examId));
+  const examId = req.exam!.id;
+  const order = data.order ?? (await nextOrder(examId));
 
-    try {
-      const question = await prisma.question.create({
-        data: {
-          examId,
-          type: data.type,
-          text: data.text,
-          correctAnswer: data.correctAnswer,
-          order,
-          points: data.points,
-          // For true_false, `options` is omitted -> stored as SQL NULL.
-          ...(data.type === "mcq" ? { options: data.options } : {}),
-        },
-      });
-      res.status(201).json({ question });
-    } catch (error) {
-      if (handleKnownPrismaError(error, res)) return;
-      throw error;
-    }
-  },
-);
+  try {
+    const question = await prisma.question.create({
+      data: {
+        examId,
+        type: data.type,
+        text: data.text,
+        correctAnswer: data.correctAnswer,
+        order,
+        points: data.points,
+        // For true_false, `options` is omitted -> stored as SQL NULL.
+        ...(data.type === "mcq" ? { options: data.options } : {}),
+      },
+    });
+    res.status(201).json({ question });
+  } catch (error) {
+    if (handleKnownPrismaError(error, res)) return;
+    throw error;
+  }
+});
 
 // Reorder all questions of an exam (admin or owning teacher). The body must
 // list every question id exactly once. Persisted in two phases to avoid
@@ -130,12 +122,8 @@ questionsRouter.post(
 
     const OFFSET = 1_000_000;
     await prisma.$transaction([
-      ...ids.map((id, i) =>
-        prisma.question.update({ where: { id }, data: { order: OFFSET + i } }),
-      ),
-      ...ids.map((id, i) =>
-        prisma.question.update({ where: { id }, data: { order: i + 1 } }),
-      ),
+      ...ids.map((id, i) => prisma.question.update({ where: { id }, data: { order: OFFSET + i } })),
+      ...ids.map((id, i) => prisma.question.update({ where: { id }, data: { order: i + 1 } })),
     ]);
 
     const questions = await prisma.question.findMany({
@@ -192,8 +180,7 @@ questionsRouter.put(
           order: validated.order,
           points: validated.points,
           correctAnswer: validated.correctAnswer,
-          options:
-            validated.type === "mcq" ? validated.options : Prisma.DbNull,
+          options: validated.type === "mcq" ? validated.options : Prisma.DbNull,
         },
       });
       res.json({ question });

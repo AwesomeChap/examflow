@@ -77,9 +77,7 @@ export const openApiDocument = {
       "`examflow_token` cookie that authorizes subsequent requests. Roles are `admin`, " +
       "`teacher`, and `student`; most endpoints are role-scoped.",
   },
-  servers: [
-    { url: "http://localhost:3000", description: "Local development" },
-  ],
+  servers: [{ url: "http://localhost:3000", description: "Local development" }],
   tags: [
     { name: "Health", description: "Service liveness." },
     { name: "Auth", description: "Login, logout, and current session." },
@@ -122,8 +120,7 @@ export const openApiDocument = {
         requestBody: jsonBody("#/components/schemas/LoginInput"),
         responses: {
           200: {
-            description:
-              "Authenticated. Sets the HttpOnly `examflow_token` cookie.",
+            description: "Authenticated. Sets the HttpOnly `examflow_token` cookie.",
             headers: {
               "Set-Cookie": {
                 description: "examflow_token=<jwt>; HttpOnly; Path=/; SameSite=Lax",
@@ -241,9 +238,7 @@ export const openApiDocument = {
         description:
           "Sets `deactivatedAt`; identifiers are never reused. Admins cannot deactivate " +
           "themselves or other admins.",
-        parameters: [
-          { name: "userId", in: "path", required: true, schema: { type: "string" } },
-        ],
+        parameters: [{ name: "userId", in: "path", required: true, schema: { type: "string" } }],
         responses: {
           200: jsonResponse("Deactivated user.", "#/components/schemas/AdminUserResponse"),
           400: errorResponse("Cannot deactivate your own account."),
@@ -257,9 +252,7 @@ export const openApiDocument = {
       post: {
         tags: ["Admin"],
         summary: "Reactivate a previously deactivated user",
-        parameters: [
-          { name: "userId", in: "path", required: true, schema: { type: "string" } },
-        ],
+        parameters: [{ name: "userId", in: "path", required: true, schema: { type: "string" } }],
         responses: {
           200: jsonResponse("Reactivated user.", "#/components/schemas/AdminUserResponse"),
           401: errorResponse("Not authenticated."),

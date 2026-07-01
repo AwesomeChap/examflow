@@ -44,10 +44,7 @@ export function ExamDetailPage() {
   return (
     <section className="space-y-6">
       <div>
-        <Link
-          to="/dashboard"
-          className="text-sm text-blue-600 hover:underline dark:text-blue-400"
-        >
+        <Link to="/dashboard" className="text-sm text-blue-600 hover:underline dark:text-blue-400">
           ← Back to dashboard
         </Link>
         <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
@@ -61,7 +58,11 @@ export function ExamDetailPage() {
                 Edit exam
               </ButtonLink>
             )}
-            <Button variant="secondary" onClick={() => clone(exam.id)} disabled={cloningId === exam.id}>
+            <Button
+              variant="secondary"
+              onClick={() => clone(exam.id)}
+              disabled={cloningId === exam.id}
+            >
               {cloningId === exam.id ? "Cloning…" : "Clone"}
             </Button>
           </div>

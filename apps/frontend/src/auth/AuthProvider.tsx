@@ -1,9 +1,14 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useDispatch } from "react-redux";
-import { ApiError, fetchCurrentUser, login as loginRequest, logout as logoutRequest } from "../api/client";
+import {
+  ApiError,
+  fetchCurrentUser,
+  login as loginRequest,
+  logout as logoutRequest,
+} from "../api/client";
 import type { LoginPayload } from "../api/client";
 import { api } from "../store/api";
-import type { User } from "../types/user";
+import type { User } from "@examflow/shared-types";
 import { AuthContext, type AuthStatus } from "./auth-context";
 
 export function AuthProvider({ children }: { children: ReactNode }) {

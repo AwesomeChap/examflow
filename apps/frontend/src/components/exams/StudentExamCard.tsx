@@ -1,4 +1,4 @@
-import type { StudentDashboardExam } from "../../types/studentDashboard";
+import type { StudentDashboardExam } from "@examflow/shared-types";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { ButtonLink } from "../ui/ButtonLink";

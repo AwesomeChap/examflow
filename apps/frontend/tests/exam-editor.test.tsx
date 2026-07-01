@@ -1,8 +1,7 @@
 import { screen, waitFor } from "@testing-library/react";
 import type { UserEvent } from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
-import type { Question } from "../src/types/question";
-import type { Student } from "../src/types/student";
+import type { Question, Student } from "@examflow/shared-types";
 import { renderApp } from "./render";
 import {
   TEST_USERS,
@@ -22,7 +21,13 @@ function toPublic(role: "admin" | "teacher" | "student") {
 function seedTeacherExam(overrides: Partial<Parameters<typeof makeExam>[0]> = {}) {
   seedSession(toPublic("teacher"));
   seedExams([
-    makeExam({ id: "e1", title: "My Exam", status: "draft", createdById: TEST_USERS.teacher.id, ...overrides }),
+    makeExam({
+      id: "e1",
+      title: "My Exam",
+      status: "draft",
+      createdById: TEST_USERS.teacher.id,
+      ...overrides,
+    }),
   ]);
 }
 
@@ -160,15 +165,11 @@ describe("exam editor (Medium-style)", () => {
     await user.tripleClick(attempts);
     await user.keyboard("3");
     await user.tab();
-    await waitFor(() =>
-      expect(capturedRequests.examUpdate.at(-1)).toEqual({ maxAttempts: 3 }),
-    );
+    await waitFor(() => expect(capturedRequests.examUpdate.at(-1)).toEqual({ maxAttempts: 3 }));
 
     // Checking "Unlimited" disables the field and persists null.
     await user.click(screen.getByRole("checkbox", { name: /unlimited/i }));
-    await waitFor(() =>
-      expect(capturedRequests.examUpdate.at(-1)).toEqual({ maxAttempts: null }),
-    );
+    await waitFor(() => expect(capturedRequests.examUpdate.at(-1)).toEqual({ maxAttempts: null }));
     expect(screen.getByLabelText(/attempts allowed/i)).toBeDisabled();
   });
 });

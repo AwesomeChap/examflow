@@ -1,4 +1,4 @@
-import type { QuestionAnalytics } from "../../types/analytics";
+import type { QuestionAnalytics } from "@examflow/shared-types";
 
 type QuestionCorrectnessListProps = {
   questions: QuestionAnalytics[];
@@ -15,9 +15,7 @@ function rateTone(rate: number): { bar: string; text: string } {
 export function QuestionCorrectnessList({ questions, submitted }: QuestionCorrectnessListProps) {
   if (questions.length === 0) {
     return (
-      <p className="text-sm text-slate-500 dark:text-slate-400">
-        This exam has no questions yet.
-      </p>
+      <p className="text-sm text-slate-500 dark:text-slate-400">This exam has no questions yet.</p>
     );
   }
 

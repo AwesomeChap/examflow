@@ -1,5 +1,6 @@
 import { Prisma, type UserRole } from "../generated/prisma/client.js";
 import { prisma } from "./prisma.js";
+import { userPublicSelect } from "./userSelect.js";
 
 // Email domains per role. Students get the dedicated student subdomain so their
 // addresses are visually distinct from staff.
@@ -23,10 +24,7 @@ function domainForRole(role: UserRole): string {
  * token; on collision (against active OR deactivated users, since we never
  * reuse identifiers) it appends an incrementing suffix: alice, alice2, alice3…
  */
-export async function generateUniqueEmail(
-  name: string,
-  role: UserRole,
-): Promise<string> {
+export async function generateUniqueEmail(name: string, role: UserRole): Promise<string> {
   const base = emailLocalPart(name);
   const domain = domainForRole(role);
 
@@ -55,9 +53,7 @@ export async function generateUniqueEmail(
  * MAT2026001. Counts every student number for the year prefix (active or not)
  * so numbers are never reused.
  */
-export async function generateMatriculation(
-  now: Date = new Date(),
-): Promise<string> {
+export async function generateMatriculation(now: Date = new Date()): Promise<string> {
   const year = now.getFullYear();
   const prefix = `MAT${year}`;
   const count = await prisma.user.count({
@@ -81,8 +77,7 @@ export async function createProvisionedUser(input: CreateUserInput) {
   const maxAttempts = 5;
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     const email = await generateUniqueEmail(input.name, input.role);
-    const matriculationNumber =
-      input.role === "student" ? await generateMatriculation() : null;
+    const matriculationNumber = input.role === "student" ? await generateMatriculation() : null;
 
     try {
       return await prisma.user.create({
@@ -93,22 +88,13 @@ export async function createProvisionedUser(input: CreateUserInput) {
           passwordHash: input.passwordHash,
           matriculationNumber,
         },
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          role: true,
-          matriculationNumber: true,
-          deactivatedAt: true,
-          createdAt: true,
-        },
+        select: userPublicSelect,
       });
     } catch (error) {
       // On a concurrent insert grabbing the same email/matriculation, loop to
       // recompute the next free identifier; rethrow anything else.
       const isUniqueRace =
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === "P2002";
+        error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
       if (!isUniqueRace || attempt === maxAttempts - 1) throw error;
     }
   }

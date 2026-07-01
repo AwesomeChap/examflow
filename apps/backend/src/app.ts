@@ -2,6 +2,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import type { NextFunction, Request, Response } from "express";
+import helmet from "helmet";
 import swaggerUi from "swagger-ui-express";
 import { env } from "./lib/env.js";
 import { sendError } from "./lib/http.js";
@@ -21,6 +22,12 @@ export function createApp() {
   // HTTP with an `X-Forwarded-Proto` header. Trusting the proxy lets Express
   // recognize the original request as secure, which `Secure` cookies rely on.
   app.set("trust proxy", 1);
+
+  // Baseline security headers (HSTS, no-sniff, frameguard, etc.). CSP is
+  // disabled because this service only serves JSON + the Swagger UI docs (whose
+  // inline assets a strict default CSP would block); the SPA is a separate
+  // static site with its own headers.
+  app.use(helmet({ contentSecurityPolicy: false }));
 
   // Allow the browser client to send/receive the HttpOnly auth cookie across
   // origins (e.g. Vite dev server -> API). `credentials` is required for cookies.

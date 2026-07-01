@@ -1,4 +1,4 @@
-import type { AttemptSummary } from "../../types/attemptSummary";
+import type { AttemptSummary } from "@examflow/shared-types";
 import { Badge } from "../ui/Badge";
 import { ButtonLink } from "../ui/ButtonLink";
 import { Card } from "../ui/Card";

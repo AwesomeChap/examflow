@@ -56,8 +56,7 @@ analyticsRouter.get("/", async (req: Request, res: Response) => {
     if (
       !current ||
       (a.score ?? 0) > (current.score ?? 0) ||
-      ((a.score ?? 0) === (current.score ?? 0) &&
-        a.submittedAt > current.submittedAt!)
+      ((a.score ?? 0) === (current.score ?? 0) && a.submittedAt > current.submittedAt!)
     ) {
       bestByUser.set(a.userId, a);
     }

@@ -1,4 +1,4 @@
-import type { Exam, ExamDetail, ExamListItem, ExamStatus, Paginated } from "../types/exam";
+import type { Exam, ExamDetail, ExamListItem, ExamStatus, Paginated } from "@examflow/shared-types";
 import { api } from "./api";
 
 export type ExamListParams = {

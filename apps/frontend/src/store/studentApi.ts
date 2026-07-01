@@ -1,5 +1,4 @@
-import type { AttemptSummary } from "../types/attemptSummary";
-import type { StudentDashboardExam } from "../types/studentDashboard";
+import type { AttemptSummary, StudentDashboardExam } from "@examflow/shared-types";
 import { api } from "./api";
 
 export const studentApi = api.injectEndpoints({

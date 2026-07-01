@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import type { Question } from "../src/types/question";
+import type { Question } from "@examflow/shared-types";
 import { renderApp, submitLogin } from "./render";
 import {
   TEST_USERS,
@@ -98,8 +98,6 @@ describe("per-account dashboards (no cross-user cache leak)", () => {
 
     // Admin lands on their own dashboard (distinct copy, role-appropriate).
     expect(await screen.findByText(`Welcome back, ${TEST_USERS.admin.name}`)).toBeInTheDocument();
-    await waitFor(() =>
-      expect(screen.getByText("admin dashboard")).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText("admin dashboard")).toBeInTheDocument());
   });
 });

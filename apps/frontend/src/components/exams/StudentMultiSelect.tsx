@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "../../lib/cn";
-import type { Student } from "../../types/student";
+import type { Student } from "@examflow/shared-types";
 
 type StudentMultiSelectProps = {
   students: Student[];
@@ -82,7 +82,10 @@ export function StudentMultiSelect({
 
   return (
     <div ref={containerRef} className="relative">
-      <span id="target-students-label" className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+      <span
+        id="target-students-label"
+        className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400"
+      >
         Target students
       </span>
       <button
@@ -100,8 +103,19 @@ export function StudentMultiSelect({
         <span className="truncate">
           {isLoading ? "Loading students…" : summarize(selected.size, students.length)}
         </span>
-        <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true">
-          <path d="M5.5 7.5 10 12l4.5-4.5" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+        <svg
+          viewBox="0 0 20 20"
+          fill="currentColor"
+          className="h-4 w-4 shrink-0 text-slate-400"
+          aria-hidden="true"
+        >
+          <path
+            d="M5.5 7.5 10 12l4.5-4.5"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            fill="none"
+            strokeLinecap="round"
+          />
         </svg>
       </button>
 

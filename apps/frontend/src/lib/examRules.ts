@@ -1,4 +1,4 @@
-import type { ExamCounts, ExamStatus } from "../types/exam";
+import type { ExamCounts, ExamStatus } from "@examflow/shared-types";
 
 type EditableExam = {
   status: ExamStatus;

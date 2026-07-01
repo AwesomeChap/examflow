@@ -1,4 +1,4 @@
-import type { ExamStatus } from "../../types/exam";
+import type { ExamStatus } from "@examflow/shared-types";
 import { Badge } from "../ui/Badge";
 
 const STATUS_LABEL: Record<ExamStatus, string> = {

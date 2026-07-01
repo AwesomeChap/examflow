@@ -1,5 +1,5 @@
 import { useGetStudentDashboardQuery } from "../../store/studentApi";
-import type { StudentDashboardExam } from "../../types/studentDashboard";
+import type { StudentDashboardExam } from "@examflow/shared-types";
 import { StudentExamCard } from "./StudentExamCard";
 
 type StudentExamCardGridProps = {

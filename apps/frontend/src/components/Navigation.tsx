@@ -2,7 +2,7 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/useAuth";
 import { useToast } from "../hooks/useToast";
 import { cn } from "../lib/cn";
-import type { UserRole } from "../types/user";
+import type { UserRole } from "@examflow/shared-types";
 import { Logo } from "./Logo";
 import { ThemeToggle } from "./ThemeToggle";
 import { Button } from "./ui/Button";

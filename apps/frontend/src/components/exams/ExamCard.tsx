@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { isExamEditable } from "../../lib/examRules";
-import type { ExamListItem } from "../../types/exam";
+import type { ExamListItem } from "@examflow/shared-types";
 import { Button } from "../ui/Button";
 import { ButtonLink } from "../ui/ButtonLink";
 import { Card } from "../ui/Card";
@@ -22,7 +22,14 @@ type ExamCardProps = {
   discarding?: boolean;
 };
 
-export function ExamCard({ exam, showCreator = false, onClone, cloning, onDiscard, discarding }: ExamCardProps) {
+export function ExamCard({
+  exam,
+  showCreator = false,
+  onClone,
+  cloning,
+  onDiscard,
+  discarding,
+}: ExamCardProps) {
   const editable = isExamEditable(exam);
   const isDraft = exam.status === "draft";
   const { questions, attempts, assignments } = exam._count;
@@ -52,9 +59,7 @@ export function ExamCard({ exam, showCreator = false, onClone, cloning, onDiscar
         <span aria-hidden="true">·</span>
         <span>{exam.durationMin} min</span>
         <span aria-hidden="true">·</span>
-        <span>
-          {assignments} assigned
-        </span>
+        <span>{assignments} assigned</span>
         {attempts > 0 && (
           <>
             <span aria-hidden="true">·</span>
@@ -72,11 +77,21 @@ export function ExamCard({ exam, showCreator = false, onClone, cloning, onDiscar
       </dl>
 
       <div className="mt-auto flex flex-wrap items-center gap-2">
-        <ButtonLink to={`/exam/${exam.id}/details`} variant="secondary" size="sm" className={TINT.amber}>
+        <ButtonLink
+          to={`/exam/${exam.id}/details`}
+          variant="secondary"
+          size="sm"
+          className={TINT.amber}
+        >
           Details
         </ButtonLink>
         {editable && (
-          <ButtonLink to={`/exam/${exam.id}/edit`} variant="secondary" size="sm" className={TINT.blue}>
+          <ButtonLink
+            to={`/exam/${exam.id}/edit`}
+            variant="secondary"
+            size="sm"
+            className={TINT.blue}
+          >
             Edit
           </ButtonLink>
         )}

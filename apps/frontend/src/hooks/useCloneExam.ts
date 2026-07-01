@@ -59,7 +59,16 @@ export function useCloneExam() {
         setCloningId(null);
       }
     },
-    [fetchExam, fetchQuestions, fetchStudents, createExam, createQuestion, assignStudents, navigate, notify],
+    [
+      fetchExam,
+      fetchQuestions,
+      fetchStudents,
+      createExam,
+      createQuestion,
+      assignStudents,
+      navigate,
+      notify,
+    ],
   );
 
   return { clone, cloningId, error };

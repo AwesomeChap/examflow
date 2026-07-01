@@ -84,7 +84,12 @@ export function ExamCardGrid({
           </li>
         ))}
       </ul>
-      <Pagination page={data.page} pageSize={data.pageSize} total={data.total} onPageChange={setPage} />
+      <Pagination
+        page={data.page}
+        pageSize={data.pageSize}
+        total={data.total}
+        onPageChange={setPage}
+      />
     </div>
   );
 }

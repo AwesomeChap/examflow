@@ -76,7 +76,9 @@ describe("exam analytics", () => {
 
     // Normal-distribution chart
     expect(
-      screen.getByRole("img", { name: /score distribution histogram with a normal-distribution curve/i }),
+      screen.getByRole("img", {
+        name: /score distribution histogram with a normal-distribution curve/i,
+      }),
     ).toBeInTheDocument();
 
     // Overview: hardest and easiest questions

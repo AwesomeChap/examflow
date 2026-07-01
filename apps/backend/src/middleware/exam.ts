@@ -8,11 +8,7 @@ import { prisma } from "../lib/prisma.js";
  * Loads the exam referenced by `:examId` into `req.exam` (id + owner only).
  * Responds 404 if it doesn't exist. Use on any exam-scoped route.
  */
-export async function loadExam(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
+export async function loadExam(req: Request, res: Response, next: NextFunction): Promise<void> {
   const exam = await prisma.exam.findUnique({
     where: { id: param(req, "examId") },
     select: { id: true, createdById: true },
@@ -32,11 +28,7 @@ export async function loadExam(
  * `req.exam`. Must run after `loadExam` (and typically `requireStaff`).
  * Responds 404 rather than 403 to avoid leaking the exam's existence.
  */
-export function requireExamWrite(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): void {
+export function requireExamWrite(req: Request, res: Response, next: NextFunction): void {
   if (!req.exam || !canWriteExam(req.user!, req.exam)) {
     sendError(res, 404, "Exam not found");
     return;

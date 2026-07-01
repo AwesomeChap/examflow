@@ -8,11 +8,7 @@ import { prisma } from "../lib/prisma.js";
 import { parseOr400 } from "../lib/validation.js";
 import { requireAuth, requireStaff } from "../middleware/auth.js";
 import { loadExam, requireExamWrite } from "../middleware/exam.js";
-import {
-  examCreateSchema,
-  examUpdateSchema,
-  paginationSchema,
-} from "../validation/schemas.js";
+import { examCreateSchema, examUpdateSchema, paginationSchema } from "../validation/schemas.js";
 import { analyticsRouter } from "./analytics.js";
 import { assignmentsRouter } from "./assignments.js";
 import { attemptsListRouter, attemptsRouter } from "./attempts.js";

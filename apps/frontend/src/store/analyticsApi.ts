@@ -1,4 +1,4 @@
-import type { ExamAnalytics } from "../types/analytics";
+import type { ExamAnalytics } from "@examflow/shared-types";
 import { api } from "./api";
 
 export const analyticsApi = api.injectEndpoints({

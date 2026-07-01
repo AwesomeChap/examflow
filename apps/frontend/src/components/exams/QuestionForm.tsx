@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { QuestionBody } from "../../store/questionsApi";
-import type { Question, QuestionType } from "../../types/question";
+import type { Question, QuestionType } from "@examflow/shared-types";
 import { Button } from "../ui/Button";
 import { SegmentedControl } from "../ui/SegmentedControl";
 import { TextArea } from "../ui/TextArea";
@@ -20,7 +20,14 @@ type QuestionFormProps = {
   onCancel: () => void;
 };
 
-export function QuestionForm({ initial, initialType, number, submitting, onSubmit, onCancel }: QuestionFormProps) {
+export function QuestionForm({
+  initial,
+  initialType,
+  number,
+  submitting,
+  onSubmit,
+  onCancel,
+}: QuestionFormProps) {
   // The type is fixed when the form opens (chosen from the "+" menu, or taken
   // from the question being edited), so there's no in-form type toggle.
   const type: QuestionType = initial?.type ?? initialType ?? "mcq";
@@ -99,7 +106,11 @@ export function QuestionForm({ initial, initialType, number, submitting, onSubmi
   };
 
   return (
-    <form onSubmit={handleSubmit} aria-label={initial ? "Edit question" : "Add question"} className="space-y-5">
+    <form
+      onSubmit={handleSubmit}
+      aria-label={initial ? "Edit question" : "Add question"}
+      className="space-y-5"
+    >
       <TextArea
         label="Question"
         prefix={number != null ? `#${number}` : undefined}
@@ -112,7 +123,9 @@ export function QuestionForm({ initial, initialType, number, submitting, onSubmi
         <fieldset className="space-y-2">
           <legend className="mb-1 text-sm font-medium text-slate-700 dark:text-slate-200">
             Options{" "}
-            <span className="font-normal text-slate-400">— select the radio to mark the correct answer</span>
+            <span className="font-normal text-slate-400">
+              — select the radio to mark the correct answer
+            </span>
           </legend>
           {options.map((option, index) => {
             const isCorrect = mcqCorrect === index;
@@ -152,7 +165,14 @@ export function QuestionForm({ initial, initialType, number, submitting, onSubmi
                     aria-label={`Remove option ${index + 1}`}
                     className="shrink-0 rounded p-1 text-slate-400 transition hover:bg-slate-100 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40 dark:hover:bg-slate-800"
                   >
-                    <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                    <svg
+                      viewBox="0 0 20 20"
+                      className="h-4 w-4"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      aria-hidden="true"
+                    >
                       <path strokeLinecap="round" d="m5 5 10 10M15 5 5 15" />
                     </svg>
                   </button>
@@ -168,7 +188,9 @@ export function QuestionForm({ initial, initialType, number, submitting, onSubmi
         </fieldset>
       ) : (
         <div>
-          <p className="mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-200">Correct answer</p>
+          <p className="mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-200">
+            Correct answer
+          </p>
           <SegmentedControl
             label="Correct answer"
             options={[

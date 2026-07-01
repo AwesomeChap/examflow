@@ -1,7 +1,14 @@
 import "@testing-library/jest-dom/vitest";
-import { cleanup } from "@testing-library/react";
+import { cleanup, configure } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, vi } from "vitest";
 import { resetSession, server } from "./server";
+
+// Routes are code-split with React.lazy, so navigating to a page triggers an
+// on-demand dynamic import. Under the full, parallel suite Vitest transforms
+// those chunks on first use, which can exceed the default 1s `findBy` timeout on
+// a busy machine. Give async queries more headroom so the split is transparent
+// to tests (real browsers fetch prebuilt chunks near-instantly).
+configure({ asyncUtilTimeout: 5000 });
 
 // Node's experimental global `localStorage` shadows jsdom's and is unusable
 // without `--localstorage-file`, so install a self-contained in-memory Storage.

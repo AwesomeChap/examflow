@@ -1,5 +1,6 @@
 import { Router } from "express";
 import type { CookieOptions, Request, Response } from "express";
+import rateLimit from "express-rate-limit";
 import { signAuthToken, verifyPassword } from "../lib/auth.js";
 import { env } from "../lib/env.js";
 import { sendError } from "../lib/http.js";
@@ -27,7 +28,19 @@ function cookieOptions(): CookieOptions {
 
 export const authRouter = Router();
 
-authRouter.post("/login", async (req: Request, res: Response) => {
+// Throttle credential-guessing on login. Enforced in production only; local dev
+// and the test suite (which log in many times) are skipped so they aren't
+// rate-limited. Relies on `trust proxy` (set in app.ts) for the real client IP.
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  skip: () => !env.isProduction,
+  message: { error: "Too many login attempts. Please try again later." },
+});
+
+authRouter.post("/login", loginLimiter, async (req: Request, res: Response) => {
   const data = parseOr400(loginSchema, req.body, res);
   if (!data) return;
 

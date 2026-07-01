@@ -1,6 +1,6 @@
 import { screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import type { Question } from "../src/types/question";
+import type { Question } from "@examflow/shared-types";
 import { renderApp } from "./render";
 import { TEST_USERS, makeExam, seedSession, seedStudentExam } from "./server";
 
@@ -67,7 +67,11 @@ describe("student dashboard", () => {
     await screen.findByText(/your results/i);
     expect(await screen.findByText(/completed any exams yet/i)).toBeInTheDocument();
 
-    await user.click(within(screen.getByRole("navigation", { name: /primary/i })).getByRole("link", { name: "Dashboard" }));
+    await user.click(
+      within(screen.getByRole("navigation", { name: /primary/i })).getByRole("link", {
+        name: "Dashboard",
+      }),
+    );
     await screen.findByText("student dashboard");
   });
 });

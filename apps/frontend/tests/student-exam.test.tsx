@@ -1,6 +1,6 @@
 import { screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { Question } from "../src/types/question";
+import type { Question } from "@examflow/shared-types";
 import { renderApp } from "./render";
 import {
   TEST_USERS,
@@ -153,7 +153,9 @@ describe("student exam flow", () => {
 
       await screen.findByRole("timer", { name: /time remaining/i });
 
-      expect(await screen.findByText(/back to results/i, {}, { timeout: 5_000 })).toBeInTheDocument();
+      expect(
+        await screen.findByText(/back to results/i, {}, { timeout: 5_000 }),
+      ).toBeInTheDocument();
       expect(screen.getByRole("heading", { name: "Live Exam" })).toBeInTheDocument();
     });
 

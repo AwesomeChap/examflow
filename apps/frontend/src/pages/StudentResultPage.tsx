@@ -8,10 +8,11 @@ import { formatAnswerDisplay } from "../lib/formatAnswer";
 export function StudentResultPage() {
   const { examId = "", attemptId = "" } = useParams();
   const { data: exam, isLoading: loadingExam } = useGetStudentExamQuery(examId, { skip: !examId });
-  const { data: result, isLoading: loadingResult, isError } = useGetAttemptResultQuery(
-    { examId, attemptId },
-    { skip: !examId || !attemptId },
-  );
+  const {
+    data: result,
+    isLoading: loadingResult,
+    isError,
+  } = useGetAttemptResultQuery({ examId, attemptId }, { skip: !examId || !attemptId });
 
   if (loadingExam || loadingResult) {
     return (
@@ -39,10 +40,7 @@ export function StudentResultPage() {
   return (
     <section className="mx-auto max-w-3xl space-y-6">
       <div>
-        <Link
-          to="/results"
-          className="text-sm text-blue-600 hover:underline dark:text-blue-400"
-        >
+        <Link to="/results" className="text-sm text-blue-600 hover:underline dark:text-blue-400">
           ← Back to results
         </Link>
         <h1 className="mt-2 text-2xl font-bold tracking-tight">{exam?.title ?? "Exam result"}</h1>
@@ -62,7 +60,9 @@ export function StudentResultPage() {
         </Card>
         <Card className="p-5 text-center">
           <p className="text-sm text-slate-500 dark:text-slate-400">Percentage</p>
-          <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">{result.percentage}%</p>
+          <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+            {result.percentage}%
+          </p>
         </Card>
         <Card className="p-5 text-center">
           <p className="text-sm text-slate-500 dark:text-slate-400">Correct</p>
@@ -78,9 +78,17 @@ export function StudentResultPage() {
           {result.breakdown.map((item, index) => {
             const question = questionById.get(item.questionId);
             const tone =
-              item.isCorrect === true ? "success" : item.isCorrect === false ? "warning" : "neutral";
+              item.isCorrect === true
+                ? "success"
+                : item.isCorrect === false
+                  ? "warning"
+                  : "neutral";
             const label =
-              item.isCorrect === true ? "Correct" : item.isCorrect === false ? "Incorrect" : "Unanswered";
+              item.isCorrect === true
+                ? "Correct"
+                : item.isCorrect === false
+                  ? "Incorrect"
+                  : "Unanswered";
 
             return (
               <li key={item.questionId}>

@@ -1,5 +1,5 @@
 import { useId } from "react";
-import type { DistributionBand } from "../../types/analytics";
+import type { DistributionBand } from "@examflow/shared-types";
 
 type ScoreDistributionChartProps = {
   distribution: DistributionBand[];
@@ -89,14 +89,7 @@ export function ScoreDistributionChart({
           return (
             <g key={band.label}>
               {band.count > 0 && (
-                <rect
-                  x={x}
-                  y={y}
-                  width={barWidth}
-                  height={h}
-                  rx={4}
-                  fill={`url(#${gradientId})`}
-                />
+                <rect x={x} y={y} width={barWidth} height={h} rx={4} fill={`url(#${gradientId})`} />
               )}
               {band.count > 0 && (
                 <text

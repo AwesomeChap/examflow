@@ -16,11 +16,7 @@ export function formatZodError(error: ZodError): {
  * Parses `body` with the given schema. On failure, sends a 400 response with
  * structured details and returns `null` so the caller can simply `return`.
  */
-export function parseOr400<T>(
-  schema: ZodType<T>,
-  body: unknown,
-  res: Response,
-): T | null {
+export function parseOr400<T>(schema: ZodType<T>, body: unknown, res: Response): T | null {
   const result = schema.safeParse(body);
   if (!result.success) {
     sendError(res, 400, "Validation failed", {

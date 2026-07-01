@@ -72,11 +72,7 @@ studentRouter.get("/dashboard", async (req: Request, res: Response) => {
     const hasActive = examAttempts.some((a) => a.submittedAt === null);
     const best = bestSubmitted(examAttempts);
 
-    const status: AttemptStatus = hasActive
-      ? "in_progress"
-      : best
-        ? "submitted"
-        : "not_started";
+    const status: AttemptStatus = hasActive ? "in_progress" : best ? "submitted" : "not_started";
 
     const isOpen = !exam.startsAt || now >= exam.startsAt.getTime();
     const attemptsUsed = examAttempts.length;
@@ -91,8 +87,7 @@ studentRouter.get("/dashboard", async (req: Request, res: Response) => {
       startsAt: exam.startsAt,
       totalQuestions: exam._count.questions,
       isOpen,
-      startsInMs:
-        exam.startsAt && !isOpen ? exam.startsAt.getTime() - now : null,
+      startsInMs: exam.startsAt && !isOpen ? exam.startsAt.getTime() - now : null,
       attemptStatus: status,
       score: best ? best.score : null,
       maxAttempts: exam.maxAttempts,
@@ -131,9 +126,7 @@ studentRouter.get("/results", async (req: Request, res: Response) => {
   // Attempt number is the chronological position among the student's attempts
   // for that exam. Compute per-exam ordering by startedAt.
   const orderByExam = new Map<string, string[]>();
-  const chronological = [...attempts].sort(
-    (a, b) => a.startedAt.getTime() - b.startedAt.getTime(),
-  );
+  const chronological = [...attempts].sort((a, b) => a.startedAt.getTime() - b.startedAt.getTime());
   for (const a of chronological) {
     const list = orderByExam.get(a.examId) ?? [];
     list.push(a.id);

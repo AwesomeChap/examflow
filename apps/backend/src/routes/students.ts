@@ -1,6 +1,7 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
 import { prisma } from "../lib/prisma.js";
+import { studentPublicSelect } from "../lib/userSelect.js";
 import { requireAuth, requireStaff } from "../middleware/auth.js";
 
 export const studentsRouter = Router();
@@ -13,7 +14,7 @@ studentsRouter.get("/", async (_req: Request, res: Response) => {
   const students = await prisma.user.findMany({
     where: { role: "student" },
     orderBy: { name: "asc" },
-    select: { id: true, name: true, email: true, matriculationNumber: true },
+    select: studentPublicSelect,
   });
   res.json({ students });
 });

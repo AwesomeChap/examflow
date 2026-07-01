@@ -5,7 +5,7 @@ import { UserList } from "../components/users/UserList";
 import { ButtonLink } from "../components/ui/ButtonLink";
 import { StatCard } from "../components/ui/StatCard";
 import { useGetAdminDashboardQuery } from "../store/adminApi";
-import type { UserRole } from "../types/user";
+import type { UserRole } from "@examflow/shared-types";
 import { StudentDashboardOverview } from "./StudentDashboardSection";
 
 const ROLE_SUMMARY: Record<UserRole, string> = {

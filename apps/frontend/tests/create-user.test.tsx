@@ -58,6 +58,8 @@ describe("create user flow", () => {
 
     // Guarded route redirects non-admins to their dashboard.
     expect(await screen.findByText("teacher dashboard")).toBeInTheDocument();
-    expect(within(screen.getByRole("main")).queryByRole("heading", { name: /create user/i })).not.toBeInTheDocument();
+    expect(
+      within(screen.getByRole("main")).queryByRole("heading", { name: /create user/i }),
+    ).not.toBeInTheDocument();
   });
 });

@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { formatDuration } from "../../lib/formatTime";
 import { useGetExamAnalyticsQuery } from "../../store/analyticsApi";
-import type { QuestionAnalytics } from "../../types/analytics";
+import type { QuestionAnalytics } from "@examflow/shared-types";
 import { Badge } from "../ui/Badge";
 import { Card } from "../ui/Card";
 import { StatCard } from "../ui/StatCard";

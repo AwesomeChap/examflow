@@ -16,6 +16,9 @@ export async function submitLogin(
   user: UserEventInstance,
   options: { audience: "student" | "staff"; identifier: string; password: string },
 ) {
+  // LoginPage is code-split (React.lazy), so wait for its chunk to mount before
+  // interacting with the form.
+  await screen.findByRole("button", { name: /sign in/i });
   if (options.audience === "staff") {
     await user.click(screen.getByRole("radio", { name: /staff/i }));
   }

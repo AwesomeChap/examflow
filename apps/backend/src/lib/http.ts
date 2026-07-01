@@ -19,10 +19,7 @@ export function sendError(
  * Returns `true` if the error was handled (response sent), otherwise `false`
  * so the caller can rethrow and let the global error handler take over.
  */
-export function handleKnownPrismaError(
-  error: unknown,
-  res: Response,
-): boolean {
+export function handleKnownPrismaError(error: unknown, res: Response): boolean {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     switch (error.code) {
       case "P2025":

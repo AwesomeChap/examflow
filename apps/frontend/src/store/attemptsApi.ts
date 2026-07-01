@@ -1,6 +1,9 @@
-import type { Attempt, AttemptResult } from "../types/attempt";
-import type { AttemptSummary } from "../types/attemptSummary";
-import type { StudentQuestion } from "../types/studentQuestion";
+import type {
+  Attempt,
+  AttemptResult,
+  AttemptSummary,
+  StudentQuestion,
+} from "@examflow/shared-types";
 import { api } from "./api";
 
 export type StudentExamDetail = {

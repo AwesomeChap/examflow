@@ -3,6 +3,7 @@ import type { Request, Response } from "express";
 import { handleKnownPrismaError, sendError } from "../lib/http.js";
 import { param } from "../lib/params.js";
 import { prisma } from "../lib/prisma.js";
+import { studentPublicSelect } from "../lib/userSelect.js";
 import { parseOr400 } from "../lib/validation.js";
 import { requireStaff } from "../middleware/auth.js";
 import { loadExam, requireExamWrite } from "../middleware/exam.js";
@@ -23,7 +24,7 @@ assignmentsRouter.get("/", async (req: Request, res: Response) => {
     select: {
       assignedAt: true,
       student: {
-        select: { id: true, name: true, email: true, matriculationNumber: true },
+        select: studentPublicSelect,
       },
     },
   });
@@ -64,20 +65,17 @@ assignmentsRouter.post("/", async (req: Request, res: Response) => {
 });
 
 // Unassign a student from an exam.
-assignmentsRouter.delete(
-  "/:studentId",
-  async (req: Request, res: Response) => {
-    const examId = req.exam!.id;
-    const studentId = param(req, "studentId");
+assignmentsRouter.delete("/:studentId", async (req: Request, res: Response) => {
+  const examId = req.exam!.id;
+  const studentId = param(req, "studentId");
 
-    try {
-      await prisma.examAssignment.delete({
-        where: { examId_studentId: { examId, studentId } },
-      });
-      res.status(204).send();
-    } catch (error) {
-      if (handleKnownPrismaError(error, res)) return;
-      throw error;
-    }
-  },
-);
+  try {
+    await prisma.examAssignment.delete({
+      where: { examId_studentId: { examId, studentId } },
+    });
+    res.status(204).send();
+  } catch (error) {
+    if (handleKnownPrismaError(error, res)) return;
+    throw error;
+  }
+});

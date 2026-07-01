@@ -1,14 +1,8 @@
 import { screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import type { Question } from "../src/types/question";
+import type { Question } from "@examflow/shared-types";
 import { renderApp } from "./render";
-import {
-  TEST_USERS,
-  makeExam,
-  seedSession,
-  seedStudentExam,
-  seedSubmittedAttempt,
-} from "./server";
+import { TEST_USERS, makeExam, seedSession, seedStudentExam, seedSubmittedAttempt } from "./server";
 
 function toPublic(role: "student") {
   const { password: _password, ...user } = TEST_USERS[role];

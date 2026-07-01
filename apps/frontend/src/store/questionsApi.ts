@@ -1,4 +1,4 @@
-import type { Question } from "../types/question";
+import type { Question } from "@examflow/shared-types";
 import { api } from "./api";
 
 /** Shape accepted by the question create/update endpoints. */

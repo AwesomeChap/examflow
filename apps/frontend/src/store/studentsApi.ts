@@ -1,4 +1,4 @@
-import type { Student } from "../types/student";
+import type { Student } from "@examflow/shared-types";
 import { api } from "./api";
 
 export const studentsApi = api.injectEndpoints({

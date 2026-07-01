@@ -27,10 +27,7 @@ export async function canReadExam(
  *  - teacher: only exams they created
  *  - student: never
  */
-export function canWriteExam(
-  user: AuthTokenPayload,
-  exam: { createdById: string },
-): boolean {
+export function canWriteExam(user: AuthTokenPayload, exam: { createdById: string }): boolean {
   return user.role === "admin" || exam.createdById === user.sub;
 }
 

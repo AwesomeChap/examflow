@@ -16,7 +16,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { ReactNode } from "react";
-import type { Question } from "../../types/question";
+import type { Question } from "@examflow/shared-types";
 import { cn } from "../../lib/cn";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
@@ -45,7 +45,13 @@ function CorrectCircle() {
       aria-hidden="true"
       className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-green-600 text-white"
     >
-      <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.5">
+      <svg
+        viewBox="0 0 20 20"
+        className="h-3.5 w-3.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+      >
         <path strokeLinecap="round" strokeLinejoin="round" d="m5 10 4 4 6-8" />
       </svg>
     </span>
@@ -79,9 +85,7 @@ function AnswerSummary({ question }: { question: Question }) {
               >
                 {option}
               </span>
-              {correct && (
-                <span className="sr-only">(correct answer)</span>
-              )}
+              {correct && <span className="sr-only">(correct answer)</span>}
             </li>
           );
         })}

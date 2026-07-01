@@ -13,14 +13,18 @@ import {
   useSubmitAttemptMutation,
   type StudentExamDetail,
 } from "../store/attemptsApi";
-import type { Attempt } from "../types/attempt";
+import type { Attempt } from "@examflow/shared-types";
 
 export function StudentExamPage() {
   const { examId = "" } = useParams();
   const navigate = useNavigate();
   const { notify } = useToast();
 
-  const { data: exam, isLoading: loadingExam, isError: examError } = useGetStudentExamQuery(examId, {
+  const {
+    data: exam,
+    isLoading: loadingExam,
+    isError: examError,
+  } = useGetStudentExamQuery(examId, {
     skip: !examId,
   });
 

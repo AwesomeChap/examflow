@@ -15,7 +15,11 @@ import { useGetExamQuestionsQuery } from "../store/questionsApi";
  */
 export function ExamPreviewPage() {
   const { examId = "" } = useParams();
-  const { data: exam, isLoading: loadingExam, isError } = useGetExamQuery(examId, { skip: !examId });
+  const {
+    data: exam,
+    isLoading: loadingExam,
+    isError,
+  } = useGetExamQuery(examId, { skip: !examId });
   const { data: questions, isLoading: loadingQuestions } = useGetExamQuestionsQuery(examId, {
     skip: !examId,
   });

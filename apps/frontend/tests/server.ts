@@ -1,12 +1,15 @@
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
-import type { AdminUser } from "../src/types/adminUser";
-import type { ExamListItem } from "../src/types/exam";
-import type { Attempt, AttemptResult } from "../src/types/attempt";
-import type { Question } from "../src/types/question";
-import type { Student } from "../src/types/student";
-import type { StudentDashboardExam } from "../src/types/studentDashboard";
-import type { User } from "../src/types/user";
+import type {
+  AdminUser,
+  Attempt,
+  AttemptResult,
+  ExamListItem,
+  Question,
+  Student,
+  StudentDashboardExam,
+  User,
+} from "@examflow/shared-types";
 
 const API = "http://localhost:3000";
 
@@ -203,9 +206,7 @@ function generateMockEmail(name: string, role: AdminUser["role"]): string {
 function generateMockMatriculation(): string {
   const year = new Date().getFullYear();
   const prefix = `MAT${year}`;
-  const count = userFixtures.filter((u) =>
-    u.matriculationNumber?.startsWith(prefix),
-  ).length;
+  const count = userFixtures.filter((u) => u.matriculationNumber?.startsWith(prefix)).length;
   return `${prefix}${String(count + 1).padStart(3, "0")}`;
 }
 
@@ -234,9 +235,7 @@ function activeAttempt(list: Attempt[]): Attempt | undefined {
 function bestAttempt(list: Attempt[]): Attempt | null {
   const submitted = list.filter((a) => a.submittedAt);
   if (submitted.length === 0) return null;
-  return submitted.reduce((best, a) =>
-    (a.score ?? 0) > (best.score ?? 0) ? a : best,
-  );
+  return submitted.reduce((best, a) => ((a.score ?? 0) > (best.score ?? 0) ? a : best));
 }
 
 /** Seeds a fully-submitted attempt for a specific student (graded from answers). */
@@ -345,14 +344,12 @@ function buildStudentDashboard(): StudentDashboardExam[] {
         startsAt: exam.startsAt,
         totalQuestions: exam._count.questions,
         isOpen,
-        startsInMs:
-          exam.startsAt && !isOpen ? new Date(exam.startsAt).getTime() - now : null,
+        startsInMs: exam.startsAt && !isOpen ? new Date(exam.startsAt).getTime() - now : null,
         attemptStatus: status,
         score: best ? best.score : null,
         maxAttempts,
         attemptsUsed: list.length,
-        attemptsRemaining:
-          maxAttempts === null ? null : Math.max(0, maxAttempts - list.length),
+        attemptsRemaining: maxAttempts === null ? null : Math.max(0, maxAttempts - list.length),
         bestAttemptId: best ? best.id : null,
       };
     });
@@ -391,8 +388,7 @@ function buildStudentResults() {
     });
   }
   return rows.sort(
-    (a, b) =>
-      new Date(b.submittedAt ?? 0).getTime() - new Date(a.submittedAt ?? 0).getTime(),
+    (a, b) => new Date(b.submittedAt ?? 0).getTime() - new Date(a.submittedAt ?? 0).getTime(),
   );
 }
 
@@ -454,9 +450,7 @@ function visibleExams(): ExamListItem[] {
     return examFixtures.filter((exam) => exam.createdById === activeSession!.id);
   }
   if (activeSession.role === "student") {
-    return examFixtures.filter((exam) =>
-      assignmentsByExam.get(exam.id)?.has(activeSession!.id),
-    );
+    return examFixtures.filter((exam) => assignmentsByExam.get(exam.id)?.has(activeSession!.id));
   }
   return [];
 }
@@ -465,8 +459,7 @@ function findUser(identifier: string, password: string): User | null {
   const id = identifier.trim().toLowerCase();
   const match = Object.values(TEST_USERS).find(
     (user) =>
-      (user.email.toLowerCase() === id ||
-        user.matriculationNumber?.toLowerCase() === id) &&
+      (user.email.toLowerCase() === id || user.matriculationNumber?.toLowerCase() === id) &&
       user.password === password,
   );
   return match ? publicUser(match) : null;
@@ -918,9 +911,7 @@ export const handlers = [
       return HttpResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     const examId = params.examId as string;
-    const attempt = getAttempts(activeSession.id, examId).find(
-      (a) => a.id === params.attemptId,
-    );
+    const attempt = getAttempts(activeSession.id, examId).find((a) => a.id === params.attemptId);
     if (!attempt) return HttpResponse.json({ error: "Not found" }, { status: 404 });
     if (!attempt.submittedAt) {
       return HttpResponse.json({ error: "Not submitted" }, { status: 409 });

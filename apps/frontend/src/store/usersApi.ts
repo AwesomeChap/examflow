@@ -1,6 +1,4 @@
-import type { AdminUser } from "../types/adminUser";
-import type { UserRole } from "../types/user";
-import type { Paginated } from "../types/exam";
+import type { AdminUser, Paginated, UserRole } from "@examflow/shared-types";
 import { api } from "./api";
 
 export type UserListParams = {

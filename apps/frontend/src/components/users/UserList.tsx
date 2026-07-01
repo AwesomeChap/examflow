@@ -5,8 +5,7 @@ import {
   useGetUsersQuery,
   useReactivateUserMutation,
 } from "../../store/usersApi";
-import type { AdminUser } from "../../types/adminUser";
-import type { UserRole } from "../../types/user";
+import type { AdminUser, UserRole } from "@examflow/shared-types";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { Pagination } from "../ui/Pagination";
