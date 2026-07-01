@@ -24,8 +24,10 @@ services:
     rootDir: .
     # npm workspaces keep the lockfile at the repo root, so we install from the
     # root and target the backend workspace for migrate + build.
+    # `--include=dev` is required: Render sets NODE_ENV=production, which makes
+    # `npm ci` omit devDependencies (typescript, @types/*), breaking the build.
     buildCommand: >-
-      npm ci &&
+      npm ci --include=dev &&
       npm run db:migrate:deploy -w @examflow/backend &&
       npm run build -w @examflow/backend
     startCommand: npm run start -w @examflow/backend
@@ -61,7 +63,9 @@ services:
     name: examflow-web
     runtime: static
     rootDir: .
-    buildCommand: npm ci && npm run build -w @examflow/frontend
+    # `--include=dev` is required so vite/typescript/tailwind (devDependencies)
+    # are installed despite NODE_ENV=production. See the API service above.
+    buildCommand: npm ci --include=dev && npm run build -w @examflow/frontend
     staticPublishPath: apps/frontend/dist
     envVars:
       - key: NODE_VERSION
