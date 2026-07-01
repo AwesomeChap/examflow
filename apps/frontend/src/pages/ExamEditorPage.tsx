@@ -151,6 +151,23 @@ export function ExamEditorPage() {
     void persist({ maxAttempts: unlimited ? null : Math.max(1, value) });
   };
 
+  // "Opens at" must never be in the past — an elapsed start time would mean the
+  // exam is already open. Reject past values (revert to the stored one) instead
+  // of persisting them.
+  const commitStartsAt = () => {
+    if (!startsAt) {
+      void persist({ startsAt: null });
+      return;
+    }
+    const chosen = new Date(startsAt);
+    if (chosen.getTime() < Date.now()) {
+      notify({ message: "Open time can't be in the past.", variant: "error" });
+      setStartsAt(toLocalInput(exam.startsAt));
+      return;
+    }
+    void persist({ startsAt: chosen.toISOString() });
+  };
+
   const handleStudentsChange = async (next: string[]) => {
     const added = next.filter((id) => !selected.includes(id));
     const removed = selected.filter((id) => !next.includes(id));
@@ -283,10 +300,9 @@ export function ExamEditorPage() {
               id="startsAt"
               type="datetime-local"
               value={startsAt}
+              min={toLocalInput(new Date().toISOString())}
               onChange={(e) => setStartsAt(e.target.value)}
-              onBlur={() =>
-                persist({ startsAt: startsAt ? new Date(startsAt).toISOString() : null })
-              }
+              onBlur={commitStartsAt}
               className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-60 hover:[&::-webkit-calendar-picker-indicator]:opacity-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:[color-scheme:dark]"
             />
           </div>
@@ -342,7 +358,7 @@ export function ExamEditorPage() {
           onChange={(e) => setTitle(e.target.value)}
           onBlur={() => title.trim() && persist({ title: title.trim() })}
           placeholder="Title"
-          className="w-full border-0 bg-transparent p-0 font-serif text-4xl font-bold tracking-tight text-slate-900 placeholder:text-slate-300 focus:outline-none dark:text-slate-50 dark:placeholder:text-slate-700"
+          className="w-full border-0 bg-transparent p-0 font-sans text-4xl font-bold tracking-tight text-slate-900 placeholder:text-slate-300 focus:outline-none dark:text-slate-50 dark:placeholder:text-slate-700"
         />
 
         {/* Description */}
