@@ -1151,7 +1151,6 @@ export const openApiDocument = {
           answered: { type: "boolean" },
           value: { type: "string", nullable: true },
           isCorrect: { type: "boolean", nullable: true },
-          correctAnswer: { type: "string" },
         },
       },
       AttemptResult: {

@@ -27,7 +27,9 @@ export const examCreateSchema = z.object({
   durationMin: z.number().int().positive().max(1440).optional(),
   status: examStatusSchema.optional(),
   // Scheduled open time; null/omitted means the exam is available immediately.
-  startsAt: z.coerce.date().nullish(),
+  // Enforce a standard ISO 8601 datetime string at the gateway rather than
+  // loosely coercing arbitrary date-like input.
+  startsAt: z.string().datetime().nullish(),
   // Allowed attempts per student; null means unlimited.
   maxAttempts: z.number().int().min(1).max(100).nullish(),
 });
@@ -38,7 +40,8 @@ export const examUpdateSchema = z
     description: z.string().trim().max(2000).nullish(),
     durationMin: z.number().int().positive().max(1440).optional(),
     status: examStatusSchema.optional(),
-    startsAt: z.coerce.date().nullish(),
+    // Strict ISO 8601 datetime, consistent with examCreateSchema.
+    startsAt: z.string().datetime().nullish(),
     maxAttempts: z.number().int().min(1).max(100).nullish(),
   })
   .refine((obj) => Object.keys(obj).length > 0, {

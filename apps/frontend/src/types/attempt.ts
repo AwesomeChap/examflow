@@ -22,7 +22,6 @@ export type ResultBreakdownItem = {
   answered: boolean;
   value: string | null;
   isCorrect: boolean | null;
-  correctAnswer: string;
 };
 
 export type AttemptResult = {

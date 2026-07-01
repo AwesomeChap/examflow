@@ -65,6 +65,11 @@ export async function finalizeAttempt(
   opts: { submittedAt: Date },
 ): Promise<GradedAttempt> {
   return prisma.$transaction(async (tx) => {
+    // Take a row lock on the attempt for the duration of the transaction. A
+    // concurrent answer write locks the same row before it writes, so grading
+    // and answer edits can never interleave (see routes/attempts.ts).
+    await tx.$queryRaw`SELECT id FROM "Attempt" WHERE id = ${attempt.id} FOR UPDATE`;
+
     const [questions, answers] = await Promise.all([
       tx.question.findMany({
         where: { examId: attempt.examId },
@@ -75,17 +80,39 @@ export async function finalizeAttempt(
 
     const byQuestion = new Map(questions.map((q) => [q.id, q]));
 
+    // Grade every answer in memory first, bucketing ids by correctness and
+    // accumulating the score. An answer whose question is missing counts as
+    // incorrect.
+    const correctIds: string[] = [];
+    const incorrectIds: string[] = [];
     let score = 0;
     for (const answer of answers) {
       const question = byQuestion.get(answer.questionId);
       const isCorrect = question
         ? answer.value === question.correctAnswer
         : false;
-      if (isCorrect && question) score += question.points;
+      if (isCorrect && question) {
+        score += question.points;
+        correctIds.push(answer.id);
+      } else {
+        incorrectIds.push(answer.id);
+      }
+    }
 
-      await tx.answer.update({
-        where: { id: answer.id },
-        data: { isCorrect },
+    // Collapse the per-answer writes into at most two set-based updates instead
+    // of one round-trip per answer. Run sequentially: Prisma interactive
+    // transactions share a single connection and don't support concurrent
+    // queries on the same `tx` client.
+    if (correctIds.length > 0) {
+      await tx.answer.updateMany({
+        where: { id: { in: correctIds } },
+        data: { isCorrect: true },
+      });
+    }
+    if (incorrectIds.length > 0) {
+      await tx.answer.updateMany({
+        where: { id: { in: incorrectIds } },
+        data: { isCorrect: false },
       });
     }
 
@@ -149,7 +176,6 @@ type ResultAttempt = {
 type ResultQuestion = {
   id: string;
   points: number;
-  correctAnswer: string;
 };
 
 /**
@@ -181,7 +207,6 @@ export function buildAttemptResult(
       answered: answer !== undefined,
       value: answer?.value ?? null,
       isCorrect,
-      correctAnswer: q.correctAnswer,
     };
   });
 

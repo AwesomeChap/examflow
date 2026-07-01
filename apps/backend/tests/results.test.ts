@@ -171,7 +171,6 @@ describe("exam result processing", () => {
         answered: true,
         value: "4",
         isCorrect: true,
-        correctAnswer: "4",
       });
       assert.deepEqual(byQ[tf.id], {
         questionId: tf.id,
@@ -180,7 +179,6 @@ describe("exam result processing", () => {
         answered: true,
         value: "false",
         isCorrect: false,
-        correctAnswer: "true",
       });
     });
 
@@ -228,12 +226,11 @@ describe("exam result processing", () => {
         answered: false,
         value: null,
         isCorrect: null,
-        correctAnswer: "4",
       });
       assert.equal(res.body.result.score, 3);
     });
 
-    it("includes the correct answer in the breakdown after submission", async () => {
+    it("never leaks the correct answer in the breakdown", async () => {
       const { exam, mcq } = await makeExam();
       const attemptId = await startAttempt(exam.id);
       await answer(exam.id, mcq.id, "3");
@@ -243,7 +240,10 @@ describe("exam result processing", () => {
       const mcqBreakdown = res.body.result.breakdown.find(
         (b: { questionId: string }) => b.questionId === mcq.id,
       );
-      assert.equal(mcqBreakdown.correctAnswer, "4");
+      assert.ok(
+        !("correctAnswer" in mcqBreakdown),
+        "result breakdown must not expose correctAnswer",
+      );
     });
 
     it("is stable across repeated reads (immutable result)", async () => {

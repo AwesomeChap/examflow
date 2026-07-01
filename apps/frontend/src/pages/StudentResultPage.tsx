@@ -101,12 +101,6 @@ export function StudentResultPage() {
                       <span className="font-medium">{formatAnswerDisplay(item.value)}</span>
                     </p>
                   )}
-                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-                    Correct answer:{" "}
-                    <span className="font-medium text-green-700 dark:text-green-400">
-                      {formatAnswerDisplay(item.correctAnswer)}
-                    </span>
-                  </p>
                 </Card>
               </li>
             );

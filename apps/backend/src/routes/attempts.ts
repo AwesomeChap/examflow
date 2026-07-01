@@ -185,14 +185,35 @@ attemptsRouter.put(
       return;
     }
 
-    const answer = await prisma.answer.upsert({
-      where: {
-        attemptId_questionId: { attemptId: attempt.id, questionId },
-      },
-      // Clear any stale grading; correctness is computed at finalize time.
-      create: { attemptId: attempt.id, questionId, value: data.value },
-      update: { value: data.value, isCorrect: null },
+    // Persist the answer atomically, re-asserting the parent attempt is still
+    // open inside the transaction. A concurrent submit/finalize stamps
+    // `submittedAt`; guarding the write here closes the check-then-write gap so
+    // an answer can never land on (or after) an already-submitted attempt. If
+    // the attempt was submitted in the meantime, we skip the write and 409.
+    const answer = await prisma.$transaction(async (tx) => {
+      // Lock the attempt row (matching the lock finalizeAttempt takes) so a
+      // concurrent submit/finalize serializes with this write instead of
+      // interleaving. Re-read `submittedAt` under the lock: if the attempt has
+      // been submitted, skip the upsert and signal a conflict.
+      const locked = await tx.$queryRaw<{ submittedAt: Date | null }[]>`
+        SELECT "submittedAt" FROM "Attempt" WHERE id = ${attempt.id} FOR UPDATE
+      `;
+      if (locked.length === 0 || locked[0].submittedAt !== null) return null;
+
+      return tx.answer.upsert({
+        where: {
+          attemptId_questionId: { attemptId: attempt.id, questionId },
+        },
+        // Clear any stale grading; correctness is computed at finalize time.
+        create: { attemptId: attempt.id, questionId, value: data.value },
+        update: { value: data.value, isCorrect: null },
+      });
     });
+
+    if (!answer) {
+      sendError(res, 409, "Attempt already submitted");
+      return;
+    }
 
     res.json({ answer: { questionId: answer.questionId, value: answer.value } });
   },
@@ -305,7 +326,7 @@ attemptsListRouter.get(
       prisma.question.findMany({
         where: { examId: exam.id },
         orderBy: { order: "asc" },
-        select: { id: true, points: true, correctAnswer: true },
+        select: { id: true, points: true },
       }),
       listAnswers(current.id),
     ]);

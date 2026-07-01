@@ -50,9 +50,9 @@ describe("admin dashboard overview", () => {
     await screen.findByText("admin dashboard");
     const main = within(screen.getByRole("main"));
 
-    // Defaults to students: teacher not shown.
+    // Defaults to all roles: both users shown.
     expect(await main.findByText("Sara Student")).toBeInTheDocument();
-    expect(main.queryByText("Terry Teacher")).not.toBeInTheDocument();
+    expect(main.getByText("Terry Teacher")).toBeInTheDocument();
 
     // Switch to teachers.
     await user.selectOptions(main.getByLabelText(/filter users by role/i), "teacher");
