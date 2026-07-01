@@ -20,16 +20,16 @@ function CreateExamButton() {
 
 // Options for the user role filter; "" means all roles.
 const ROLE_FILTERS: { value: "" | UserRole; label: string }[] = [
+  { value: "", label: "All roles" },
   { value: "student", label: "Students" },
   { value: "teacher", label: "Teachers" },
   { value: "admin", label: "Admins" },
-  { value: "", label: "All roles" },
 ];
 
 function AdminOverview() {
   const { data, isLoading } = useGetAdminDashboardQuery();
-  // Default to students, the largest and most frequently managed cohort.
-  const [roleFilter, setRoleFilter] = useState<"" | UserRole>("student");
+  // Default to all roles so the admin sees every account up front.
+  const [roleFilter, setRoleFilter] = useState<"" | UserRole>("");
 
   return (
     <div className="mt-8 space-y-8">
