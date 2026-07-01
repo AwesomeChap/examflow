@@ -105,7 +105,7 @@ export function TextField({
             aria-pressed={revealed}
             className="absolute inset-y-0 right-0 flex items-center rounded-r-lg px-3 text-slate-500 transition hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:text-slate-400 dark:hover:text-slate-200"
           >
-            {revealed ? <EyeOffIcon /> : <EyeIcon />}
+            {revealed ? <EyeIcon /> : <EyeOffIcon />}
           </button>
         )}
       </div>
