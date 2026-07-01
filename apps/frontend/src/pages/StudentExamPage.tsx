@@ -11,7 +11,6 @@ import {
   useSaveAnswerMutation,
   useStartAttemptMutation,
   useSubmitAttemptMutation,
-  type StudentExamDetail,
 } from "../store/attemptsApi";
 import type { Attempt } from "@examflow/shared-types";
 
@@ -79,7 +78,7 @@ export function StudentExamPage() {
     [examId, locked, navigate, notify, submitAttempt],
   );
 
-  const { remainingMs, expired } = useCountdown(
+  const { remainingMs } = useCountdown(
     attempt && !attempt.submittedAt ? attempt.deadline : null,
     () => void finishExam("timer"),
   );
@@ -165,178 +164,97 @@ export function StudentExamPage() {
     );
   }
 
-  const timerUrgent = remainingMs <= 5 * 60 * 1000 && !expired;
-
   return (
-    // Bottom padding clears the fixed footer bar so the card never hides behind it.
-    <div className="mx-auto max-w-3xl pb-28">
-      <ExamHeader
-        exam={exam}
-        remainingMs={remainingMs}
-        timerUrgent={timerUrgent}
-        answeredCount={answeredCount}
-        totalQuestions={questions.length}
-        locked={locked}
-      />
+    <section className="mx-auto max-w-3xl space-y-6">
+      <div>
+        <Link to="/dashboard" className="text-sm text-blue-600 hover:underline dark:text-blue-400">
+          ← Back to dashboard
+        </Link>
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-2xl font-bold tracking-tight">{exam.title}</h1>
+          <Button size="sm" onClick={handleManualSubmit} disabled={locked || submitting}>
+            {submitting ? "Submitting…" : "Submit"}
+          </Button>
+        </div>
+        {exam.description && (
+          <p className="mt-2 text-slate-600 dark:text-slate-400">{exam.description}</p>
+        )}
+      </div>
 
-      <Card className="mt-6 p-6">
-        <ExamQuestionPanel
-          question={current}
-          index={questionIndex}
-          total={questions.length}
-          value={answerMap.get(current.id)}
-          disabled={locked}
-          onChange={selectAnswer}
+      <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm dark:border-slate-700 dark:bg-slate-800/50">
+        <p className="text-slate-600 dark:text-slate-400" aria-live="polite">
+          {answeredCount}/{questions.length} attempted
+          {locked && " · Submitted"}
+        </p>
+        <div
+          role="timer"
+          aria-live="off"
+          aria-label="Time remaining"
+          className="font-mono font-semibold tabular-nums text-red-700 dark:text-red-300"
+        >
+          {formatCountdown(remainingMs)}
+        </div>
+      </div>
+
+      <div className="pb-24">
+        <Card className="p-6">
+          <ExamQuestionPanel
+            question={current}
+            index={questionIndex}
+            total={questions.length}
+            value={answerMap.get(current.id)}
+            disabled={locked}
+            onChange={selectAnswer}
+          />
+        </Card>
+
+        <ExamFooter
+          questionIndex={questionIndex}
+          totalQuestions={questions.length}
+          locked={locked}
+          onPrevious={() => setQuestionIndex((i) => i - 1)}
+          onNext={() => setQuestionIndex((i) => i + 1)}
         />
-      </Card>
-
-      <ExamFooter
-        questionIndex={questionIndex}
-        totalQuestions={questions.length}
-        locked={locked}
-        submitting={submitting}
-        onPrevious={() => setQuestionIndex((i) => i - 1)}
-        onNext={() => setQuestionIndex((i) => i + 1)}
-        onSubmit={handleManualSubmit}
-      />
-    </div>
+      </div>
+    </section>
   );
 }
 
-function ChevronLeftIcon() {
-  return (
-    <svg
-      viewBox="0 0 20 20"
-      className="h-4 w-4"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      aria-hidden="true"
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12.5 5 7.5 10l5 5" />
-    </svg>
-  );
-}
-
-function ChevronRightIcon() {
-  return (
-    <svg
-      viewBox="0 0 20 20"
-      className="h-4 w-4"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      aria-hidden="true"
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 5l5 5-5 5" />
-    </svg>
-  );
-}
-
-/**
- * Fixed action bar pinned to the bottom of the viewport (mirroring the sticky
- * header). Keeping Previous/Next in a constant position stops them jumping as
- * question length changes, and isolating Submit on the far right — where the
- * timer sits above — guards against accidental submits. The inner column widths
- * match the page content so the controls line up with the question card edges.
- */
 function ExamFooter({
   questionIndex,
   totalQuestions,
   locked,
-  submitting,
   onPrevious,
   onNext,
-  onSubmit,
 }: {
   questionIndex: number;
   totalQuestions: number;
   locked: boolean;
-  submitting: boolean;
   onPrevious: () => void;
   onNext: () => void;
-  onSubmit: () => void;
 }) {
   return (
     <footer className="fixed inset-x-0 bottom-0 z-20 px-4 pb-4 sm:px-6">
       <div className="mx-auto max-w-3xl">
         <Card className="flex items-center justify-between gap-3 bg-white/40 px-6 py-3.5 backdrop-blur-xl backdrop-saturate-150 dark:bg-slate-900/40">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={questionIndex === 0 || locked}
-              onClick={onPrevious}
-            >
-              <ChevronLeftIcon />
-              Previous
-            </Button>
-            <span
-              aria-hidden="true"
-              className="h-5 w-px bg-slate-200 dark:bg-slate-700"
-            />
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={questionIndex >= totalQuestions - 1 || locked}
-              onClick={onNext}
-            >
-              Next
-              <ChevronRightIcon />
-            </Button>
-          </div>
-          <Button onClick={onSubmit} disabled={locked || submitting}>
-            {submitting ? "Submitting…" : "Submit exam"}
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={questionIndex === 0 || locked}
+            onClick={onPrevious}
+          >
+            Previous
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={questionIndex >= totalQuestions - 1 || locked}
+            onClick={onNext}
+          >
+            Next
           </Button>
         </Card>
       </div>
     </footer>
-  );
-}
-
-function ExamHeader({
-  exam,
-  remainingMs,
-  timerUrgent,
-  answeredCount,
-  totalQuestions,
-  locked,
-}: {
-  exam: StudentExamDetail;
-  remainingMs: number;
-  timerUrgent: boolean;
-  answeredCount: number;
-  totalQuestions: number;
-  locked: boolean;
-}) {
-  return (
-    // Styled to match the question card (same width, rounded border, shadow) so
-    // it reads as part of the same stack instead of a wider bar bleeding past it.
-    <header className="sticky top-0 z-10 rounded-2xl border border-slate-200 bg-white/95 px-6 py-4 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/95">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-            {exam.title}
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400" aria-live="polite">
-            {answeredCount}/{totalQuestions} attempted
-            {locked && " · Submitted"}
-          </p>
-        </div>
-        <div
-          role="timer"
-          aria-live="off"
-          aria-label="Time remaining"
-          className={[
-            "rounded-lg px-4 py-2 font-mono text-lg font-semibold tabular-nums",
-            timerUrgent
-              ? "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300"
-              : "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100",
-          ].join(" ")}
-        >
-          {formatCountdown(remainingMs)}
-        </div>
-      </div>
-    </header>
   );
 }

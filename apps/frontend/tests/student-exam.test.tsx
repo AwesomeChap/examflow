@@ -122,7 +122,7 @@ describe("student exam flow", () => {
       await user.click(screen.getByRole("radio", { name: "4" }));
 
       vi.spyOn(window, "confirm").mockReturnValue(true);
-      await user.click(screen.getByRole("button", { name: /submit exam/i }));
+      await user.click(screen.getByRole("button", { name: /^submit$/i }));
 
       expect(
         await screen.findByText(/back to results/i, {}, { timeout: 5_000 }),
@@ -139,7 +139,7 @@ describe("student exam flow", () => {
 
       await screen.findByText("Pick four");
       vi.spyOn(window, "confirm").mockReturnValue(true);
-      await user.click(screen.getByRole("button", { name: /submit exam/i }));
+      await user.click(screen.getByRole("button", { name: /^submit$/i }));
 
       expect(await screen.findByText("Exam submitted.")).toBeInTheDocument();
     });
