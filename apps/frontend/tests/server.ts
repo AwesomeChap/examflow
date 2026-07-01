@@ -9,7 +9,10 @@ import type { User } from "../src/types/user";
 
 const API = "http://localhost:3000";
 
-export const TEST_USERS: Record<"admin" | "teacher" | "student", User & { password: string }> = {
+export const TEST_USERS: Record<
+  "admin" | "teacher" | "student" | "student2",
+  User & { password: string }
+> = {
   admin: {
     id: "u-admin",
     name: "Ada Admin",
@@ -33,6 +36,14 @@ export const TEST_USERS: Record<"admin" | "teacher" | "student", User & { passwo
     role: "student",
     matriculationNumber: "MAT-1001",
     password: "student-pass",
+  },
+  student2: {
+    id: "u-student2",
+    name: "Bea Student",
+    email: "student2@examflow.test",
+    role: "student",
+    matriculationNumber: "MAT-1002",
+    password: "student2-pass",
   },
 };
 
@@ -97,6 +108,33 @@ export function seedAssignments(examId: string, studentIds: string[]) {
 
 function attemptKey(userId: string, examId: string) {
   return `${userId}:${examId}`;
+}
+
+/** Seeds a fully-submitted attempt for a specific student (graded from answers). */
+export function seedSubmittedAttempt(
+  examId: string,
+  studentId: string,
+  answers: { questionId: string; value: string }[],
+) {
+  const questions = questionsByExam.get(examId) ?? [];
+  const byQ = new Map(questions.map((q) => [q.id, q]));
+  const score = answers.reduce((sum, a) => {
+    const q = byQ.get(a.questionId);
+    return q && a.value === q.correctAnswer ? sum + q.points : sum;
+  }, 0);
+  attemptsByKey.set(attemptKey(studentId, examId), {
+    id: `att-${studentId}-${examId}`,
+    examId,
+    startedAt: new Date().toISOString(),
+    deadline: new Date(Date.now() + 60_000).toISOString(),
+    submittedAt: new Date().toISOString(),
+    score,
+    remainingMs: 0,
+    answers: answers.map((a) => {
+      const q = byQ.get(a.questionId);
+      return { ...a, isCorrect: q ? a.value === q.correctAnswer : false };
+    }),
+  });
 }
 
 /** Assign an exam (+ optional questions) to the test student for dashboard/taking flows. */

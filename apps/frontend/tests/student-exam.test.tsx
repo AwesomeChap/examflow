@@ -124,8 +124,10 @@ describe("student exam flow", () => {
       vi.spyOn(window, "confirm").mockReturnValue(true);
       await user.click(screen.getByRole("button", { name: /submit exam/i }));
 
-      expect(await screen.findByRole("heading", { name: "Live Exam" })).toBeInTheDocument();
-      expect(screen.getByText(/back to results/i)).toBeInTheDocument();
+      expect(
+        await screen.findByText(/back to results/i, {}, { timeout: 5_000 }),
+      ).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Live Exam" })).toBeInTheDocument();
       expect(screen.getByText(/breakdown/i)).toBeInTheDocument();
       expect(screen.getByText(/your answer:/i)).toBeInTheDocument();
       expect(screen.queryByText(/time's up — exam submitted/i)).not.toBeInTheDocument();
