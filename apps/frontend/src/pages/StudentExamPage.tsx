@@ -258,39 +258,37 @@ function ExamFooter({
   onSubmit: () => void;
 }) {
   return (
-    <footer className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
-      <div className="mx-auto max-w-5xl px-4 sm:px-6">
-        <div className="mx-auto max-w-3xl">
-          <div className="flex items-center justify-between gap-3 py-3.5">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={questionIndex === 0 || locked}
-                onClick={onPrevious}
-              >
-                <ChevronLeftIcon />
-                Previous
-              </Button>
-              <span
-                aria-hidden="true"
-                className="h-5 w-px bg-slate-200 dark:bg-slate-700"
-              />
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={questionIndex >= totalQuestions - 1 || locked}
-                onClick={onNext}
-              >
-                Next
-                <ChevronRightIcon />
-              </Button>
-            </div>
-            <Button onClick={onSubmit} disabled={locked || submitting}>
-              {submitting ? "Submitting…" : "Submit exam"}
+    <footer className="fixed inset-x-0 bottom-0 z-20 px-4 pb-4 sm:px-6">
+      <div className="mx-auto max-w-3xl">
+        <Card className="flex items-center justify-between gap-3 bg-white/40 px-6 py-3.5 backdrop-blur-xl backdrop-saturate-150 dark:bg-slate-900/40">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={questionIndex === 0 || locked}
+              onClick={onPrevious}
+            >
+              <ChevronLeftIcon />
+              Previous
+            </Button>
+            <span
+              aria-hidden="true"
+              className="h-5 w-px bg-slate-200 dark:bg-slate-700"
+            />
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={questionIndex >= totalQuestions - 1 || locked}
+              onClick={onNext}
+            >
+              Next
+              <ChevronRightIcon />
             </Button>
           </div>
-        </div>
+          <Button onClick={onSubmit} disabled={locked || submitting}>
+            {submitting ? "Submitting…" : "Submit exam"}
+          </Button>
+        </Card>
       </div>
     </footer>
   );

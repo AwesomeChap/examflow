@@ -85,7 +85,7 @@ export function ExamPreviewPage() {
           <p className="text-slate-500 dark:text-slate-400">This exam has no questions yet.</p>
         </Card>
       ) : (
-        <>
+        <div className="pb-24">
           <Card className="p-6">
             <ExamQuestionPanel
               question={current}
@@ -93,28 +93,49 @@ export function ExamPreviewPage() {
               total={ordered.length}
               correctValue={current.correctAnswer}
             />
-
-            <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={index === 0}
-                onClick={() => setIndex((i) => i - 1)}
-              >
-                Previous
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={index >= ordered.length - 1}
-                onClick={() => setIndex((i) => i + 1)}
-              >
-                Next
-              </Button>
-            </div>
           </Card>
-        </>
+
+          <PreviewExamFooter
+            index={index}
+            total={ordered.length}
+            onPrevious={() => setIndex((i) => i - 1)}
+            onNext={() => setIndex((i) => i + 1)}
+          />
+        </div>
       )}
     </section>
+  );
+}
+
+/** Sticky nav bar for stepping through preview questions (no submit). */
+function PreviewExamFooter({
+  index,
+  total,
+  onPrevious,
+  onNext,
+}: {
+  index: number;
+  total: number;
+  onPrevious: () => void;
+  onNext: () => void;
+}) {
+  return (
+    <footer className="fixed inset-x-0 bottom-0 z-20 px-4 pb-4 sm:px-6">
+      <div className="mx-auto max-w-3xl">
+        <Card className="flex items-center justify-between gap-3 bg-white/40 px-6 py-3.5 backdrop-blur-xl backdrop-saturate-150 dark:bg-slate-900/40">
+          <Button variant="secondary" size="sm" disabled={index === 0} onClick={onPrevious}>
+            Previous
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={index >= total - 1}
+            onClick={onNext}
+          >
+            Next
+          </Button>
+        </Card>
+      </div>
+    </footer>
   );
 }
