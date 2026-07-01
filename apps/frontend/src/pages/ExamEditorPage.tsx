@@ -72,6 +72,8 @@ export function ExamEditorPage() {
   const [description, setDescription] = useState("");
   const [durationMin, setDurationMin] = useState(60);
   const [startsAt, setStartsAt] = useState("");
+  const [maxAttempts, setMaxAttempts] = useState<number>(1);
+  const [unlimitedAttempts, setUnlimitedAttempts] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [mode, setMode] = useState<Mode>({ kind: "idle" });
   const [saveState, setSaveState] = useState<SaveState>("idle");
@@ -84,6 +86,8 @@ export function ExamEditorPage() {
       setDescription(exam.description ?? "");
       setDurationMin(exam.durationMin);
       setStartsAt(toLocalInput(exam.startsAt));
+      setUnlimitedAttempts(exam.maxAttempts === null);
+      setMaxAttempts(exam.maxAttempts ?? 1);
     }
   }, [exam]);
 
@@ -140,6 +144,10 @@ export function ExamEditorPage() {
     } catch {
       setSaveState("error");
     }
+  };
+
+  const persistAttempts = (unlimited: boolean, value: number) => {
+    void persist({ maxAttempts: unlimited ? null : Math.max(1, value) });
   };
 
   const handleStudentsChange = async (next: string[]) => {
@@ -280,6 +288,38 @@ export function ExamEditorPage() {
               }
               className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-60 hover:[&::-webkit-calendar-picker-indicator]:opacity-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:[color-scheme:dark]"
             />
+          </div>
+          <div>
+            <label htmlFor="maxAttempts" className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+              Attempts allowed
+            </label>
+            <div className="flex items-center gap-3">
+              <input
+                id="maxAttempts"
+                type="number"
+                min={1}
+                max={100}
+                value={unlimitedAttempts ? "" : maxAttempts}
+                disabled={unlimitedAttempts}
+                onChange={(e) => setMaxAttempts(Math.max(1, Number(e.target.value) || 1))}
+                onBlur={() => persistAttempts(false, maxAttempts)}
+                placeholder="∞"
+                className="h-10 w-24 rounded-lg border border-slate-300 bg-white px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:border-slate-700 dark:bg-slate-950 dark:disabled:bg-slate-900"
+              />
+              <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                <input
+                  type="checkbox"
+                  checked={unlimitedAttempts}
+                  onChange={(e) => {
+                    const unlimited = e.target.checked;
+                    setUnlimitedAttempts(unlimited);
+                    persistAttempts(unlimited, maxAttempts);
+                  }}
+                  className="h-4 w-4 rounded border-slate-300 accent-blue-600 dark:border-slate-700"
+                />
+                Unlimited
+              </label>
+            </div>
           </div>
           <div>
             <StudentMultiSelect

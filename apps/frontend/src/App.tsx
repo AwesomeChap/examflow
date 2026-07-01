@@ -77,7 +77,7 @@ export default function App() {
           }
         />
         <Route
-          path="/results/:examId"
+          path="/results/:examId/:attemptId"
           element={
             <ProtectedRoute allowedRoles={[...STUDENT]}>
               <StudentResultPage />

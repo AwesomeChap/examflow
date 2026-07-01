@@ -5,6 +5,12 @@
  *
  * Only *submitted* attempts contribute to score/correctness statistics —
  * in-progress attempts have no final score and ungraded answers.
+ *
+ * When an exam allows multiple attempts, the route passes only each student's
+ * best submitted attempt as `scoringAttempts`, so score/distribution/timing and
+ * per-question correctness reflect one counting attempt per student. The raw
+ * attempt landscape (total, in-progress) is supplied separately via
+ * `attemptTotals` for the summary.
  */
 
 type AnalyticsExam = {
@@ -66,13 +72,18 @@ function stdDev(values: number[], mean: number): number {
 export function buildExamAnalytics(
   exam: AnalyticsExam,
   questions: AnalyticsQuestion[],
-  attempts: AnalyticsAttempt[],
+  scoringAttempts: AnalyticsAttempt[],
   answers: AnalyticsAnswer[],
   assignedStudents: number,
+  attemptTotals: { total: number; inProgress: number } = {
+    total: scoringAttempts.length,
+    inProgress: 0,
+  },
 ) {
   const maxScore = questions.reduce((sum, q) => sum + q.points, 0);
 
-  const submitted = attempts.filter((a) => a.submittedAt !== null);
+  // Every scoring attempt is a student's best *submitted* attempt.
+  const submitted = scoringAttempts.filter((a) => a.submittedAt !== null);
   const submittedCount = submitted.length;
   const scores = submitted.map((a) => a.score ?? 0);
 
@@ -165,9 +176,11 @@ export function buildExamAnalytics(
       maxScore,
     },
     attempts: {
-      total: attempts.length,
+      // `total`/`inProgress` describe the raw attempt landscape; `submitted` is
+      // the number of distinct students whose best attempt counts.
+      total: attemptTotals.total,
       submitted: submittedCount,
-      inProgress: attempts.length - submittedCount,
+      inProgress: attemptTotals.inProgress,
       assignedStudents,
       completionRate:
         assignedStudents > 0

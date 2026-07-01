@@ -95,36 +95,48 @@ describe("exam result processing", () => {
       .send({ value });
   }
 
+  // Start an attempt and return its id (results are now attempt-id addressed).
+  async function startAttempt(examId: string) {
+    const res = await studentAgent.post(`/exams/${examId}/attempt`);
+    return res.body.attempt.id as string;
+  }
+
+  const resultUrl = (examId: string, attemptId: string) =>
+    `/exams/${examId}/attempts/${attemptId}/result`;
+
   describe("availability", () => {
-    it("returns 404 when the student has no attempt", async () => {
+    it("returns 404 for an attempt that does not exist", async () => {
       const { exam } = await makeExam();
-      const res = await studentAgent.get(`/exams/${exam.id}/attempt/result`);
+      const res = await studentAgent.get(resultUrl(exam.id, "no-such-attempt"));
       assert.equal(res.status, 404);
     });
 
     it("returns 409 while the attempt is still in progress", async () => {
       const { exam } = await makeExam();
-      await studentAgent.post(`/exams/${exam.id}/attempt`);
+      const attemptId = await startAttempt(exam.id);
 
-      const res = await studentAgent.get(`/exams/${exam.id}/attempt/result`);
+      const res = await studentAgent.get(resultUrl(exam.id, attemptId));
       assert.equal(res.status, 409);
     });
 
     it("hides the exam from an unassigned student (404)", async () => {
       const { exam } = await makeExam();
-      const res = await unassignedAgent.get(`/exams/${exam.id}/attempt/result`);
+      const attemptId = await startAttempt(exam.id);
+      // Another student cannot even read the exam, so its attempts are 404.
+      const res = await unassignedAgent.get(resultUrl(exam.id, attemptId));
       assert.equal(res.status, 404);
     });
 
     it("forbids staff from the student result endpoint (403)", async () => {
       const { exam } = await makeExam();
-      const res = await teacherAgent.get(`/exams/${exam.id}/attempt/result`);
+      const attemptId = await startAttempt(exam.id);
+      const res = await teacherAgent.get(resultUrl(exam.id, attemptId));
       assert.equal(res.status, 403);
     });
 
     it("requires authentication (401)", async () => {
       const { exam } = await makeExam();
-      const res = await request(app).get(`/exams/${exam.id}/attempt/result`);
+      const res = await request(app).get(resultUrl(exam.id, "any"));
       assert.equal(res.status, 401);
     });
   });
@@ -132,12 +144,12 @@ describe("exam result processing", () => {
   describe("processed result", () => {
     it("returns the full score breakdown after submission", async () => {
       const { exam, mcq, tf } = await makeExam();
-      await studentAgent.post(`/exams/${exam.id}/attempt`);
+      const attemptId = await startAttempt(exam.id);
       await answer(exam.id, mcq.id, "4"); // correct (2)
       await answer(exam.id, tf.id, "false"); // wrong (0)
       await studentAgent.post(`/exams/${exam.id}/attempt/submit`);
 
-      const res = await studentAgent.get(`/exams/${exam.id}/attempt/result`);
+      const res = await studentAgent.get(resultUrl(exam.id, attemptId));
       assert.equal(res.status, 200);
 
       const r = res.body.result;
@@ -174,12 +186,12 @@ describe("exam result processing", () => {
 
     it("reports 100% when every answer is correct", async () => {
       const { exam, mcq, tf } = await makeExam();
-      await studentAgent.post(`/exams/${exam.id}/attempt`);
+      const attemptId = await startAttempt(exam.id);
       await answer(exam.id, mcq.id, "4");
       await answer(exam.id, tf.id, "true");
       await studentAgent.post(`/exams/${exam.id}/attempt/submit`);
 
-      const res = await studentAgent.get(`/exams/${exam.id}/attempt/result`);
+      const res = await studentAgent.get(resultUrl(exam.id, attemptId));
       assert.equal(res.body.result.score, 5);
       assert.equal(res.body.result.percentage, 100);
       assert.equal(res.body.result.correctCount, 2);
@@ -187,10 +199,10 @@ describe("exam result processing", () => {
 
     it("reports 0% when nothing is answered", async () => {
       const { exam } = await makeExam();
-      await studentAgent.post(`/exams/${exam.id}/attempt`);
+      const attemptId = await startAttempt(exam.id);
       await studentAgent.post(`/exams/${exam.id}/attempt/submit`);
 
-      const res = await studentAgent.get(`/exams/${exam.id}/attempt/result`);
+      const res = await studentAgent.get(resultUrl(exam.id, attemptId));
       assert.equal(res.body.result.score, 0);
       assert.equal(res.body.result.percentage, 0);
       assert.equal(res.body.result.correctCount, 0);
@@ -198,11 +210,11 @@ describe("exam result processing", () => {
 
     it("marks unanswered questions as awarded 0 / isCorrect null", async () => {
       const { exam, mcq, tf } = await makeExam();
-      await studentAgent.post(`/exams/${exam.id}/attempt`);
+      const attemptId = await startAttempt(exam.id);
       await answer(exam.id, tf.id, "true"); // only answer the true/false
       await studentAgent.post(`/exams/${exam.id}/attempt/submit`);
 
-      const res = await studentAgent.get(`/exams/${exam.id}/attempt/result`);
+      const res = await studentAgent.get(resultUrl(exam.id, attemptId));
       const byQ = Object.fromEntries(
         res.body.result.breakdown.map((b: { questionId: string }) => [
           b.questionId,
@@ -223,11 +235,11 @@ describe("exam result processing", () => {
 
     it("includes the correct answer in the breakdown after submission", async () => {
       const { exam, mcq } = await makeExam();
-      await studentAgent.post(`/exams/${exam.id}/attempt`);
+      const attemptId = await startAttempt(exam.id);
       await answer(exam.id, mcq.id, "3");
       await studentAgent.post(`/exams/${exam.id}/attempt/submit`);
 
-      const res = await studentAgent.get(`/exams/${exam.id}/attempt/result`);
+      const res = await studentAgent.get(resultUrl(exam.id, attemptId));
       const mcqBreakdown = res.body.result.breakdown.find(
         (b: { questionId: string }) => b.questionId === mcq.id,
       );
@@ -236,12 +248,12 @@ describe("exam result processing", () => {
 
     it("is stable across repeated reads (immutable result)", async () => {
       const { exam, mcq } = await makeExam();
-      await studentAgent.post(`/exams/${exam.id}/attempt`);
+      const attemptId = await startAttempt(exam.id);
       await answer(exam.id, mcq.id, "4");
       await studentAgent.post(`/exams/${exam.id}/attempt/submit`);
 
-      const first = await studentAgent.get(`/exams/${exam.id}/attempt/result`);
-      const second = await studentAgent.get(`/exams/${exam.id}/attempt/result`);
+      const first = await studentAgent.get(resultUrl(exam.id, attemptId));
+      const second = await studentAgent.get(resultUrl(exam.id, attemptId));
       assert.deepEqual(second.body.result, first.body.result);
     });
   });
@@ -249,16 +261,16 @@ describe("exam result processing", () => {
   describe("backend-enforced finalization", () => {
     it("auto-finalizes an expired attempt and returns its result", async () => {
       const { exam, mcq } = await makeExam(60);
-      await studentAgent.post(`/exams/${exam.id}/attempt`);
+      const attemptId = await startAttempt(exam.id);
       await answer(exam.id, mcq.id, "4"); // correct (2) before time runs out
 
-      // Force the deadline into the past.
+      // Force the deadline into the past for this specific attempt.
       await prisma.attempt.update({
-        where: { userId_examId: { userId: studentId, examId: exam.id } },
+        where: { id: attemptId },
         data: { startedAt: new Date(Date.now() - 3 * 60 * 60 * 1000) },
       });
 
-      const res = await studentAgent.get(`/exams/${exam.id}/attempt/result`);
+      const res = await studentAgent.get(resultUrl(exam.id, attemptId));
       assert.equal(res.status, 200);
       assert.ok(res.body.result.submittedAt, "should be auto-submitted");
       assert.equal(res.body.result.score, 2);

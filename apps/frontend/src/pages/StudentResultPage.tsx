@@ -6,11 +6,12 @@ import { useGetAttemptResultQuery, useGetStudentExamQuery } from "../store/attem
 import { formatAnswerDisplay } from "../lib/formatAnswer";
 
 export function StudentResultPage() {
-  const { examId = "" } = useParams();
+  const { examId = "", attemptId = "" } = useParams();
   const { data: exam, isLoading: loadingExam } = useGetStudentExamQuery(examId, { skip: !examId });
-  const { data: result, isLoading: loadingResult, isError } = useGetAttemptResultQuery(examId, {
-    skip: !examId,
-  });
+  const { data: result, isLoading: loadingResult, isError } = useGetAttemptResultQuery(
+    { examId, attemptId },
+    { skip: !examId || !attemptId },
+  );
 
   if (loadingExam || loadingResult) {
     return (

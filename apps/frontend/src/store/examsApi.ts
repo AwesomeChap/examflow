@@ -20,6 +20,8 @@ export type CreateExamBody = {
   status?: ExamStatus;
   /** ISO string, or null for "available immediately". */
   startsAt?: string | null;
+  /** Allowed attempts per student; null means unlimited. */
+  maxAttempts?: number | null;
 };
 
 export type UpdateExamBody = Partial<CreateExamBody>;

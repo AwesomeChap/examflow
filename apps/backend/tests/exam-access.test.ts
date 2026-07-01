@@ -140,7 +140,9 @@ describe("exam access APIs", () => {
   describe("admin can access all exams", () => {
     it("lists every exam regardless of owner or assignment", async () => {
       const agent = await agentFor(world.admin.email);
-      const res = await agent.get("/exams");
+      // Use a large page so the assertion tests visibility, not pagination:
+      // the suite's other files create many exams concurrently in the shared DB.
+      const res = await agent.get("/exams?pageSize=100");
 
       assert.equal(res.status, 200);
       const ids = (res.body.exams as { id: string }[]).map((e) => e.id);

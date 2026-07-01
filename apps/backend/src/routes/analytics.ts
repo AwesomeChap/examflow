@@ -18,41 +18,74 @@ analyticsRouter.use(requireStaff, loadExam, requireExamWrite);
 analyticsRouter.get("/", async (req: Request, res: Response) => {
   const examId = req.exam!.id;
 
-  const [exam, questions, attempts, answers, assignedStudents] =
-    await Promise.all([
-      prisma.exam.findUnique({
-        where: { id: examId },
-        select: { id: true, title: true },
-      }),
-      prisma.question.findMany({
-        where: { examId },
-        orderBy: { order: "asc" },
-        select: { id: true, order: true, text: true, type: true, points: true },
-      }),
-      prisma.attempt.findMany({
-        where: { examId },
-        select: { startedAt: true, submittedAt: true, score: true },
-      }),
-      // Only graded answers from submitted attempts feed correctness stats.
-      prisma.answer.findMany({
-        where: { attempt: { examId, submittedAt: { not: null } } },
-        select: { questionId: true, isCorrect: true },
-      }),
-      prisma.examAssignment.count({ where: { examId } }),
-    ]);
+  const [exam, questions, attempts, assignedStudents] = await Promise.all([
+    prisma.exam.findUnique({
+      where: { id: examId },
+      select: { id: true, title: true },
+    }),
+    prisma.question.findMany({
+      where: { examId },
+      orderBy: { order: "asc" },
+      select: { id: true, order: true, text: true, type: true, points: true },
+    }),
+    prisma.attempt.findMany({
+      where: { examId },
+      select: {
+        id: true,
+        userId: true,
+        startedAt: true,
+        submittedAt: true,
+        score: true,
+      },
+    }),
+    prisma.examAssignment.count({ where: { examId } }),
+  ]);
 
   if (!exam) {
     sendError(res, 404, "Exam not found");
     return;
   }
 
+  // With multiple attempts allowed, each student's *best* submitted attempt is
+  // the one that counts (highest score, tie-break latest). Analytics reflect
+  // one counting attempt per student.
+  const bestByUser = new Map<string, (typeof attempts)[number]>();
+  for (const a of attempts) {
+    if (!a.submittedAt) continue;
+    const current = bestByUser.get(a.userId);
+    if (
+      !current ||
+      (a.score ?? 0) > (current.score ?? 0) ||
+      ((a.score ?? 0) === (current.score ?? 0) &&
+        a.submittedAt > current.submittedAt!)
+    ) {
+      bestByUser.set(a.userId, a);
+    }
+  }
+  const countingAttempts = [...bestByUser.values()];
+  const countingIds = new Set(countingAttempts.map((a) => a.id));
+
+  // Only graded answers from the counting attempts feed correctness stats.
+  const answers = await prisma.answer.findMany({
+    where: { attemptId: { in: [...countingIds] } },
+    select: { questionId: true, isCorrect: true },
+  });
+
+  // Summary counts describe every attempt (including retakes / in-progress).
+  const submittedTotal = attempts.filter((a) => a.submittedAt !== null).length;
+  const attemptTotals = {
+    total: attempts.length,
+    inProgress: attempts.length - submittedTotal,
+  };
+
   res.json({
     analytics: buildExamAnalytics(
       exam,
       questions,
-      attempts,
+      countingAttempts,
       answers,
       assignedStudents,
+      attemptTotals,
     ),
   });
 });

@@ -46,6 +46,8 @@ model Exam {
   status      ExamStatus @default(draft)
   // When the exam opens for students. Null means it is available immediately.
   startsAt    DateTime?
+  // How many times a student may attempt this exam. Null means unlimited.
+  maxAttempts Int?       @default(1)
   createdAt   DateTime   @default(now())
 
   createdById String
@@ -102,9 +104,11 @@ model Attempt {
 
   answers Answer[]
 
-  @@unique([userId, examId])
-  // userId is covered by the unique above; index examId for per-exam queries
-  // (e.g. attempt counts) and FK cascade on exam deletion.
+  // Students may attempt an exam multiple times (see Exam.maxAttempts), so the
+  // (userId, examId) pair is no longer unique. A single *active* (unsubmitted)
+  // attempt per pair is enforced in application logic on start.
+  @@index([userId, examId])
+  // Index examId for per-exam queries (e.g. analytics) and FK cascade.
   @@index([examId])
 }
 

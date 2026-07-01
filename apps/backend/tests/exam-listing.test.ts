@@ -100,4 +100,43 @@ describe("exam listing (pagination + status)", () => {
     assert.equal(res.status, 201);
     assert.equal(res.body.exam.status, "published");
   });
+
+  it("defaults maxAttempts to 1 when omitted", async () => {
+    const agent = await agentFor(world.teacherA.email);
+    const res = await agent.post("/exams").send({ title: `Attempts default ${world.tag}` });
+
+    assert.equal(res.status, 201);
+    assert.equal(res.body.exam.maxAttempts, 1);
+
+    await prisma.exam.delete({ where: { id: res.body.exam.id } });
+  });
+
+  it("persists a configured attempt limit and unlimited (null)", async () => {
+    const agent = await agentFor(world.teacherA.email);
+
+    const finite = await agent
+      .post("/exams")
+      .send({ title: `Attempts 3 ${world.tag}`, maxAttempts: 3 });
+    assert.equal(finite.status, 201);
+    assert.equal(finite.body.exam.maxAttempts, 3);
+
+    const unlimited = await agent
+      .post("/exams")
+      .send({ title: `Attempts unlimited ${world.tag}`, maxAttempts: null });
+    assert.equal(unlimited.status, 201);
+    assert.equal(unlimited.body.exam.maxAttempts, null);
+
+    await prisma.exam.deleteMany({
+      where: { id: { in: [finite.body.exam.id, unlimited.body.exam.id] } },
+    });
+  });
+
+  it("rejects an invalid attempt limit (400)", async () => {
+    const agent = await agentFor(world.teacherA.email);
+    const res = await agent
+      .post("/exams")
+      .send({ title: `Bad attempts ${world.tag}`, maxAttempts: 0 });
+
+    assert.equal(res.status, 400);
+  });
 });

@@ -147,6 +147,30 @@ describe("exam editor (Medium-style)", () => {
     expect(await screen.findByText(/already has results/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /clone exam/i })).toBeInTheDocument();
   });
+
+  it("configures the allowed attempts (number and unlimited)", async () => {
+    seedTeacherExam();
+    const { user } = renderApp("/exam/e1/edit");
+
+    await screen.findByDisplayValue("My Exam");
+    const attempts = screen.getByLabelText(/attempts allowed/i);
+
+    // Set a finite limit; blurring persists it. Triple-click selects the
+    // existing value so typing replaces it (the field clamps empty back to 1).
+    await user.tripleClick(attempts);
+    await user.keyboard("3");
+    await user.tab();
+    await waitFor(() =>
+      expect(capturedRequests.examUpdate.at(-1)).toEqual({ maxAttempts: 3 }),
+    );
+
+    // Checking "Unlimited" disables the field and persists null.
+    await user.click(screen.getByRole("checkbox", { name: /unlimited/i }));
+    await waitFor(() =>
+      expect(capturedRequests.examUpdate.at(-1)).toEqual({ maxAttempts: null }),
+    );
+    expect(screen.getByLabelText(/attempts allowed/i)).toBeDisabled();
+  });
 });
 
 /** Opens the add-question form for the given type and waits for the field. */

@@ -15,7 +15,7 @@ import {
 } from "../validation/schemas.js";
 import { analyticsRouter } from "./analytics.js";
 import { assignmentsRouter } from "./assignments.js";
-import { attemptsRouter } from "./attempts.js";
+import { attemptsListRouter, attemptsRouter } from "./attempts.js";
 import { questionsRouter } from "./questions.js";
 
 export const examsRouter = Router();
@@ -87,6 +87,8 @@ examsRouter.post("/", requireStaff, async (req: Request, res: Response) => {
       durationMin: data.durationMin,
       status: data.status,
       startsAt: data.startsAt ?? null,
+      // undefined -> Prisma applies the schema default (1 attempt).
+      maxAttempts: data.maxAttempts,
       createdById: req.user!.sub,
     },
   });
@@ -132,4 +134,5 @@ examsRouter.delete(
 examsRouter.use("/:examId/questions", questionsRouter);
 examsRouter.use("/:examId/students", assignmentsRouter);
 examsRouter.use("/:examId/attempt", attemptsRouter);
+examsRouter.use("/:examId/attempts", attemptsListRouter);
 examsRouter.use("/:examId/analytics", analyticsRouter);

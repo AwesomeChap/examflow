@@ -28,6 +28,8 @@ export const examCreateSchema = z.object({
   status: examStatusSchema.optional(),
   // Scheduled open time; null/omitted means the exam is available immediately.
   startsAt: z.coerce.date().nullish(),
+  // Allowed attempts per student; null means unlimited.
+  maxAttempts: z.number().int().min(1).max(100).nullish(),
 });
 
 export const examUpdateSchema = z
@@ -37,6 +39,7 @@ export const examUpdateSchema = z
     durationMin: z.number().int().positive().max(1440).optional(),
     status: examStatusSchema.optional(),
     startsAt: z.coerce.date().nullish(),
+    maxAttempts: z.number().int().min(1).max(100).nullish(),
   })
   .refine((obj) => Object.keys(obj).length > 0, {
     message: "At least one field is required",

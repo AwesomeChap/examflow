@@ -19,6 +19,8 @@ export type Exam = {
   durationMin: number;
   status: ExamStatus;
   startsAt: string | null;
+  /** Allowed attempts per student; null means unlimited. */
+  maxAttempts: number | null;
   createdAt: string;
   createdById: string;
 };

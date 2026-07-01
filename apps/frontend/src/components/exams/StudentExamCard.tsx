@@ -17,36 +17,50 @@ function formatOpensAt(iso: string): string {
   });
 }
 
+function attemptsLabel(exam: StudentDashboardExam): string {
+  if (exam.maxAttempts === null) {
+    return `Unlimited attempts · ${exam.attemptsUsed} used`;
+  }
+  return `Attempt ${Math.min(exam.attemptsUsed + 1, exam.maxAttempts)} of ${exam.maxAttempts}`;
+}
+
 type StudentExamCardProps = {
   exam: StudentDashboardExam;
-  /** When true, card links to the result page instead of the exam. */
-  resultsMode?: boolean;
 };
 
-export function StudentExamCard({ exam, resultsMode = false }: StudentExamCardProps) {
+export function StudentExamCard({ exam }: StudentExamCardProps) {
   const locked = !exam.isOpen;
   const submitted = exam.attemptStatus === "submitted";
   const inProgress = exam.attemptStatus === "in_progress";
+  const attemptsLeft = exam.attemptsRemaining === null || exam.attemptsRemaining > 0;
+  const canRetake = submitted && attemptsLeft && !locked;
 
-  const actionLabel = resultsMode
-    ? "View result"
-    : submitted
-      ? "View result"
-      : inProgress
-        ? "Continue"
-        : locked
-          ? "Not open yet"
+  // "View result" is the fallback once no attempts remain (or as a secondary
+  // action). It links to the best attempt's breakdown.
+  const showViewResult = submitted && exam.bestAttemptId !== null;
+
+  const primaryLabel = inProgress
+    ? "Continue"
+    : locked
+      ? "Not open yet"
+      : canRetake
+        ? "Retake"
+        : submitted
+          ? "View result"
           : "Start exam";
 
-  const destination = submitted || resultsMode ? `/results/${exam.id}` : `/exam/${exam.id}`;
-  const canNavigate = resultsMode ? submitted : !locked && !submitted;
+  const primaryTo =
+    submitted && !canRetake && !inProgress
+      ? `/results/${exam.id}/${exam.bestAttemptId}`
+      : `/exam/${exam.id}`;
+  const primaryDisabled = locked || (submitted && !canRetake && !showViewResult);
 
   return (
-    <Card className={`flex h-full flex-col p-5 ${locked && !resultsMode ? "opacity-75" : ""}`}>
+    <Card className={`flex h-full flex-col p-5 ${locked ? "opacity-75" : ""}`}>
       <div className="mb-2 flex items-start justify-between gap-3">
         <h3 className="font-semibold text-slate-900 dark:text-slate-100">{exam.title}</h3>
         {submitted && exam.score !== null ? (
-          <Badge tone="success">Score: {exam.score}</Badge>
+          <Badge tone="success">Best: {exam.score}</Badge>
         ) : inProgress ? (
           <Badge tone="info">In progress</Badge>
         ) : locked ? (
@@ -68,35 +82,40 @@ export function StudentExamCard({ exam, resultsMode = false }: StudentExamCardPr
         </span>
         <span aria-hidden="true">·</span>
         <span>{exam.durationMin} min</span>
+        <span aria-hidden="true">·</span>
+        <span>{attemptsLabel(exam)}</span>
         {exam.startsAt && (
           <>
             <span aria-hidden="true">·</span>
             <span>Opens {formatOpensAt(exam.startsAt)}</span>
           </>
         )}
-        {submitted && exam.score !== null && (
-          <>
-            <span aria-hidden="true">·</span>
-            <span>Score {exam.score}</span>
-          </>
-        )}
       </dl>
 
-      <div className="mt-auto">
-        {canNavigate ? (
-          <Link to={destination}>
+      <div className="mt-auto flex flex-wrap gap-2">
+        {primaryDisabled ? (
+          <Button variant="secondary" size="sm" disabled className={TINT.blue}>
+            {primaryLabel}
+          </Button>
+        ) : (
+          <Link to={primaryTo}>
             <Button
               variant="secondary"
               size="sm"
-              className={submitted || resultsMode ? TINT.amber : TINT.blue}
+              className={submitted && !canRetake ? TINT.amber : TINT.blue}
             >
-              {actionLabel}
+              {primaryLabel}
             </Button>
           </Link>
-        ) : (
-          <Button variant="secondary" size="sm" disabled className={TINT.blue}>
-            {actionLabel}
-          </Button>
+        )}
+
+        {/* When a retake is offered, still let the student review their best result. */}
+        {canRetake && showViewResult && (
+          <Link to={`/results/${exam.id}/${exam.bestAttemptId}`}>
+            <Button variant="secondary" size="sm" className={TINT.amber}>
+              View result
+            </Button>
+          </Link>
         )}
       </div>
     </Card>

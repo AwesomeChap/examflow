@@ -65,7 +65,7 @@ export function StudentExamPage() {
           message: reason === "timer" ? "Time's up — exam submitted." : "Exam submitted.",
           variant: "success",
         });
-        navigate(`/results/${examId}`, { replace: true });
+        navigate(`/results/${examId}/${result.id}`, { replace: true });
       } catch {
         setLocked(false);
         submitInFlight.current = false;
@@ -88,12 +88,17 @@ export function StudentExamPage() {
       try {
         const att = await startAttempt(examId).unwrap();
         if (att.submittedAt) {
-          navigate(`/results/${examId}`, { replace: true });
+          navigate(`/results/${examId}/${att.id}`, { replace: true });
           return;
         }
         setAttempt(att);
-      } catch {
-        setStartError("Could not start this exam. It may not be open yet or was already submitted.");
+      } catch (err) {
+        const status = (err as { status?: number })?.status;
+        setStartError(
+          status === 409
+            ? "You have used all your attempts for this exam."
+            : "Could not start this exam. It may not be open yet.",
+        );
       }
     })();
   }, [exam, examId, navigate, startAttempt]);

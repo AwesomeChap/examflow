@@ -248,6 +248,78 @@ describe("per-exam analytics", () => {
     });
   });
 
+  describe("best attempt per student (multiple attempts)", () => {
+    it("counts only each student's best submitted attempt", async () => {
+      const owner = userIds[0];
+      const retakeExam = await prisma.exam.create({
+        data: {
+          title: `Retake Analytics ${randomUUID().slice(0, 8)}`,
+          createdById: owner,
+          durationMin: 60,
+          maxAttempts: null, // unlimited
+        },
+      });
+      const q = await prisma.question.create({
+        data: {
+          examId: retakeExam.id,
+          type: "mcq",
+          text: "2 + 2 = ?",
+          options: ["3", "4"],
+          correctAnswer: "4",
+          order: 1,
+          points: 2,
+        },
+      });
+
+      // Reuse two of the existing students, both assigned to the retake exam.
+      const s1 = userIds[3];
+      const s2 = userIds[4];
+      await prisma.examAssignment.createMany({
+        data: [
+          { examId: retakeExam.id, studentId: s1 },
+          { examId: retakeExam.id, studentId: s2 },
+        ],
+      });
+
+      const [{ email: e1 }, { email: e2 }] = await Promise.all([
+        prisma.user.findUniqueOrThrow({ where: { id: s1 }, select: { email: true } }),
+        prisma.user.findUniqueOrThrow({ where: { id: s2 }, select: { email: true } }),
+      ]);
+      const a1 = await agentFor(e1);
+      const a2 = await agentFor(e2);
+
+      // Student 1: first attempt wrong (0), retake correct (2) -> best = 2.
+      await a1.post(`/exams/${retakeExam.id}/attempt`);
+      await a1.put(`/exams/${retakeExam.id}/attempt/answers/${q.id}`).send({ value: "3" });
+      await a1.post(`/exams/${retakeExam.id}/attempt/submit`);
+      await a1.post(`/exams/${retakeExam.id}/attempt`);
+      await a1.put(`/exams/${retakeExam.id}/attempt/answers/${q.id}`).send({ value: "4" });
+      await a1.post(`/exams/${retakeExam.id}/attempt/submit`);
+
+      // Student 2: single wrong attempt -> best = 0.
+      await a2.post(`/exams/${retakeExam.id}/attempt`);
+      await a2.put(`/exams/${retakeExam.id}/attempt/answers/${q.id}`).send({ value: "3" });
+      await a2.post(`/exams/${retakeExam.id}/attempt/submit`);
+
+      const res = await ownerAgent.get(`/exams/${retakeExam.id}/analytics`);
+      assert.equal(res.status, 200);
+      const an = res.body.analytics;
+
+      // Two distinct students submitted (best attempts), across three attempts.
+      assert.equal(an.attempts.submitted, 2);
+      assert.equal(an.attempts.total, 3);
+      // Best scores are [2, 0] -> average 1, not dragged down by the retake's
+      // earlier 0.
+      assert.equal(an.score.averageScore, 1);
+      assert.equal(an.score.highestScore, 2);
+      // Per-question: student 1's best is correct, student 2 wrong -> 1/2.
+      assert.equal(an.questions[0].answered, 2);
+      assert.equal(an.questions[0].correct, 1);
+
+      await prisma.exam.delete({ where: { id: retakeExam.id } });
+    });
+  });
+
   describe("exam with no attempts", () => {
     it("returns zeroed stats and empty distribution counts", async () => {
       const emptyExam = await prisma.exam.create({

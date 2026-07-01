@@ -65,7 +65,10 @@ let activeSession: User | null = null;
 export const requestCredentials: Record<string, RequestCredentials> = {};
 
 /** Captured request payloads, for asserting exactly what the client sent. */
-export const capturedRequests: { questionCreate: unknown[] } = { questionCreate: [] };
+export const capturedRequests: { questionCreate: unknown[]; examUpdate: unknown[] } = {
+  questionCreate: [],
+  examUpdate: [],
+};
 
 export function seedSession(user: User | null) {
   activeSession = user;
@@ -79,8 +82,8 @@ const questionsByExam = new Map<string, Question[]>();
 let studentFixtures: Student[] = [];
 /** Assigned student ids keyed by exam id. */
 const assignmentsByExam = new Map<string, Set<string>>();
-/** In-progress or submitted attempts keyed by `userId:examId`. */
-const attemptsByKey = new Map<string, Attempt>();
+/** All attempts (in-progress + submitted) keyed by `userId:examId`. */
+const attemptsByKey = new Map<string, Attempt[]>();
 /** When set, overrides attempt deadline offset (ms) for timer/autosubmit tests. */
 let testAttemptDurationMs: number | null = null;
 /** Pre-built analytics payloads keyed by exam id. */
@@ -164,6 +167,28 @@ function attemptKey(userId: string, examId: string) {
   return `${userId}:${examId}`;
 }
 
+function getAttempts(userId: string, examId: string): Attempt[] {
+  return attemptsByKey.get(attemptKey(userId, examId)) ?? [];
+}
+
+function pushAttempt(userId: string, examId: string, attempt: Attempt) {
+  const key = attemptKey(userId, examId);
+  attemptsByKey.set(key, [...(attemptsByKey.get(key) ?? []), attempt]);
+}
+
+function activeAttempt(list: Attempt[]): Attempt | undefined {
+  return list.find((a) => !a.submittedAt);
+}
+
+/** Best submitted attempt (highest score, tie-break latest). */
+function bestAttempt(list: Attempt[]): Attempt | null {
+  const submitted = list.filter((a) => a.submittedAt);
+  if (submitted.length === 0) return null;
+  return submitted.reduce((best, a) =>
+    (a.score ?? 0) > (best.score ?? 0) ? a : best,
+  );
+}
+
 /** Seeds a fully-submitted attempt for a specific student (graded from answers). */
 export function seedSubmittedAttempt(
   examId: string,
@@ -176,8 +201,9 @@ export function seedSubmittedAttempt(
     const q = byQ.get(a.questionId);
     return q && a.value === q.correctAnswer ? sum + q.points : sum;
   }, 0);
-  attemptsByKey.set(attemptKey(studentId, examId), {
-    id: `att-${studentId}-${examId}`,
+  const n = getAttempts(studentId, examId).length + 1;
+  pushAttempt(studentId, examId, {
+    id: `att-${studentId}-${examId}-${n}`,
     examId,
     startedAt: new Date().toISOString(),
     deadline: new Date(Date.now() + 60_000).toISOString(),
@@ -251,9 +277,16 @@ function buildStudentDashboard(): StudentDashboardExam[] {
   return examFixtures
     .filter((exam) => assignmentsByExam.get(exam.id)?.has(studentId))
     .map((exam) => {
-      const att = attemptsByKey.get(attemptKey(studentId, exam.id));
-      const status = !att ? "not_started" : att.submittedAt ? "submitted" : "in_progress";
+      const list = getAttempts(studentId, exam.id);
+      const hasActive = activeAttempt(list) !== undefined;
+      const best = bestAttempt(list);
+      const status: StudentDashboardExam["attemptStatus"] = hasActive
+        ? "in_progress"
+        : best
+          ? "submitted"
+          : "not_started";
       const isOpen = !exam.startsAt || now >= new Date(exam.startsAt).getTime();
+      const maxAttempts = exam.maxAttempts ?? null;
       return {
         id: exam.id,
         title: exam.title,
@@ -264,10 +297,53 @@ function buildStudentDashboard(): StudentDashboardExam[] {
         isOpen,
         startsInMs:
           exam.startsAt && !isOpen ? new Date(exam.startsAt).getTime() - now : null,
-        attemptStatus: status as StudentDashboardExam["attemptStatus"],
-        score: att?.submittedAt ? att.score : null,
+        attemptStatus: status,
+        score: best ? best.score : null,
+        maxAttempts,
+        attemptsUsed: list.length,
+        attemptsRemaining:
+          maxAttempts === null ? null : Math.max(0, maxAttempts - list.length),
+        bestAttemptId: best ? best.id : null,
       };
     });
+}
+
+function buildStudentResults() {
+  if (!activeSession || activeSession.role !== "student") return [];
+  const studentId = activeSession.id;
+  const rows: Array<{
+    id: string;
+    examId: string;
+    title: string;
+    attemptNumber: number;
+    score: number;
+    maxScore: number;
+    percentage: number;
+    submittedAt: string | null;
+  }> = [];
+  for (const exam of examFixtures) {
+    const list = getAttempts(studentId, exam.id);
+    const questions = questionsByExam.get(exam.id) ?? [];
+    const maxScore = questions.reduce((s, q) => s + q.points, 0);
+    list.forEach((a, index) => {
+      if (!a.submittedAt) return;
+      const score = a.score ?? 0;
+      rows.push({
+        id: a.id,
+        examId: exam.id,
+        title: exam.title,
+        attemptNumber: index + 1,
+        score,
+        maxScore,
+        percentage: maxScore > 0 ? Math.round((score / maxScore) * 10000) / 100 : 0,
+        submittedAt: a.submittedAt,
+      });
+    });
+  }
+  return rows.sort(
+    (a, b) =>
+      new Date(b.submittedAt ?? 0).getTime() - new Date(a.submittedAt ?? 0).getTime(),
+  );
 }
 
 function syncAssignmentCount(examId: string) {
@@ -291,6 +367,7 @@ export function resetSession() {
   testAttemptDurationMs = null;
   idCounter = 0;
   capturedRequests.questionCreate.length = 0;
+  capturedRequests.examUpdate.length = 0;
   for (const key of Object.keys(requestCredentials)) {
     delete requestCredentials[key];
   }
@@ -304,6 +381,7 @@ export function makeExam(overrides: Partial<ExamListItem> & { id: string }): Exa
     durationMin: 60,
     status: "draft",
     startsAt: null,
+    maxAttempts: 1,
     createdAt: new Date().toISOString(),
     createdById: TEST_USERS.teacher.id,
     createdBy: {
@@ -433,6 +511,7 @@ export const handlers = [
       description: body.description ?? null,
       durationMin: body.durationMin ?? 60,
       status: body.status ?? "draft",
+      maxAttempts: body.maxAttempts ?? 1,
       createdById: activeSession.id,
       createdBy: {
         id: activeSession.id,
@@ -453,6 +532,7 @@ export const handlers = [
       return HttpResponse.json({ error: "Exam not found" }, { status: 404 });
     }
     const body = (await request.json()) as Partial<ExamListItem>;
+    capturedRequests.examUpdate.push(body);
     examFixtures[index] = { ...examFixtures[index], ...body };
     return HttpResponse.json({ exam: examFixtures[index] });
   }),
@@ -602,6 +682,13 @@ export const handlers = [
     return HttpResponse.json({ exams: buildStudentDashboard() });
   }),
 
+  http.get(`${API}/student/results`, () => {
+    if (!activeSession || activeSession.role !== "student") {
+      return HttpResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    return HttpResponse.json({ results: buildStudentResults() });
+  }),
+
   http.post(`${API}/exams/:examId/attempt`, ({ params }) => {
     if (!activeSession || activeSession.role !== "student") {
       return HttpResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -614,13 +701,16 @@ export const handlers = [
       return HttpResponse.json({ error: "Not started" }, { status: 403 });
     }
 
-    const key = attemptKey(activeSession.id, examId);
-    const existing = attemptsByKey.get(key);
-    if (existing?.submittedAt) {
-      return HttpResponse.json({ error: "Already submitted" }, { status: 409 });
+    const list = getAttempts(activeSession.id, examId);
+    const active = activeAttempt(list);
+    if (active) {
+      // Resume the in-progress attempt.
+      return HttpResponse.json({ attempt: active });
     }
-    if (existing) {
-      return HttpResponse.json({ attempt: existing });
+
+    const maxAttempts = exam.maxAttempts ?? null;
+    if (maxAttempts !== null && list.length >= maxAttempts) {
+      return HttpResponse.json({ error: "No attempts remaining" }, { status: 409 });
     }
 
     const startedAt = new Date().toISOString();
@@ -636,7 +726,7 @@ export const handlers = [
       remainingMs: durationMs,
       answers: [],
     };
-    attemptsByKey.set(key, attempt);
+    pushAttempt(activeSession.id, examId, attempt);
     return HttpResponse.json({ attempt }, { status: 201 });
   }),
 
@@ -644,28 +734,25 @@ export const handlers = [
     if (!activeSession || activeSession.role !== "student") {
       return HttpResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-    const key = attemptKey(activeSession.id, params.examId as string);
-    const attempt = attemptsByKey.get(key);
-    if (!attempt) return HttpResponse.json({ error: "Not found" }, { status: 404 });
-    return HttpResponse.json({ attempt });
+    const active = activeAttempt(getAttempts(activeSession.id, params.examId as string));
+    if (!active) return HttpResponse.json({ error: "Not found" }, { status: 404 });
+    return HttpResponse.json({ attempt: active });
   }),
 
   http.put(`${API}/exams/:examId/attempt/answers/:questionId`, async ({ params, request }) => {
     if (!activeSession || activeSession.role !== "student") {
       return HttpResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-    const key = attemptKey(activeSession.id, params.examId as string);
-    const attempt = attemptsByKey.get(key);
-    if (!attempt || attempt.submittedAt) {
+    const examId = params.examId as string;
+    const active = activeAttempt(getAttempts(activeSession.id, examId));
+    if (!active) {
       return HttpResponse.json({ error: "Conflict" }, { status: 409 });
     }
     const { value } = (await request.json()) as { value: string };
     const questionId = params.questionId as string;
-    const answers = [...attempt.answers];
-    const idx = answers.findIndex((a) => a.questionId === questionId);
-    if (idx >= 0) answers[idx] = { questionId, value };
-    else answers.push({ questionId, value });
-    attemptsByKey.set(key, { ...attempt, answers });
+    const idx = active.answers.findIndex((a) => a.questionId === questionId);
+    if (idx >= 0) active.answers[idx] = { questionId, value };
+    else active.answers.push({ questionId, value });
     return HttpResponse.json({ answer: { questionId, value } });
   }),
 
@@ -674,34 +761,52 @@ export const handlers = [
       return HttpResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     const examId = params.examId as string;
-    const key = attemptKey(activeSession.id, examId);
-    const attempt = attemptsByKey.get(key);
-    if (!attempt) return HttpResponse.json({ error: "Not found" }, { status: 404 });
-    if (attempt.submittedAt) {
-      return HttpResponse.json({ attempt });
-    }
-    const result = gradeAttempt(examId, attempt);
-    const submitted: Attempt = {
-      ...attempt,
-      submittedAt: new Date().toISOString(),
-      score: result.score,
-      remainingMs: 0,
-      answers: attempt.answers.map((a) => {
-        const q = (questionsByExam.get(examId) ?? []).find((x) => x.id === a.questionId);
-        return { ...a, isCorrect: q ? a.value === q.correctAnswer : false };
-      }),
-    };
-    attemptsByKey.set(key, submitted);
-    return HttpResponse.json({ attempt: submitted });
+    const active = activeAttempt(getAttempts(activeSession.id, examId));
+    if (!active) return HttpResponse.json({ error: "Not found" }, { status: 404 });
+
+    const result = gradeAttempt(examId, active);
+    active.submittedAt = new Date().toISOString();
+    active.score = result.score;
+    active.remainingMs = 0;
+    active.answers = active.answers.map((a) => {
+      const q = (questionsByExam.get(examId) ?? []).find((x) => x.id === a.questionId);
+      return { ...a, isCorrect: q ? a.value === q.correctAnswer : false };
+    });
+    return HttpResponse.json({ attempt: active });
   }),
 
-  http.get(`${API}/exams/:examId/attempt/result`, ({ params }) => {
+  http.get(`${API}/exams/:examId/attempts`, ({ params }) => {
     if (!activeSession || activeSession.role !== "student") {
       return HttpResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     const examId = params.examId as string;
-    const key = attemptKey(activeSession.id, examId);
-    const attempt = attemptsByKey.get(key);
+    const list = getAttempts(activeSession.id, examId);
+    const questions = questionsByExam.get(examId) ?? [];
+    const maxScore = questions.reduce((s, q) => s + q.points, 0);
+    const attempts = list.map((a, index) => ({
+      id: a.id,
+      examId,
+      attemptNumber: index + 1,
+      startedAt: a.startedAt,
+      submittedAt: a.submittedAt,
+      score: a.submittedAt ? (a.score ?? 0) : null,
+      maxScore,
+      percentage:
+        a.submittedAt && maxScore > 0
+          ? Math.round(((a.score ?? 0) / maxScore) * 10000) / 100
+          : null,
+    }));
+    return HttpResponse.json({ attempts });
+  }),
+
+  http.get(`${API}/exams/:examId/attempts/:attemptId/result`, ({ params }) => {
+    if (!activeSession || activeSession.role !== "student") {
+      return HttpResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    const examId = params.examId as string;
+    const attempt = getAttempts(activeSession.id, examId).find(
+      (a) => a.id === params.attemptId,
+    );
     if (!attempt) return HttpResponse.json({ error: "Not found" }, { status: 404 });
     if (!attempt.submittedAt) {
       return HttpResponse.json({ error: "Not submitted" }, { status: 409 });

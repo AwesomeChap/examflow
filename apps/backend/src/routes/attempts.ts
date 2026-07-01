@@ -16,22 +16,26 @@ import { parseOr400 } from "../lib/validation.js";
 import { requireStudent } from "../middleware/auth.js";
 import { answerUpsertSchema } from "../validation/schemas.js";
 
-// Nested under /exams/:examId/attempt. Inherits requireAuth from the parent
-// exams router; here we additionally restrict the whole flow to students.
+// Nested under /exams/:examId/attempt (active-attempt flow) and
+// /exams/:examId/attempts (attempt history + per-attempt results). Both inherit
+// requireAuth from the parent exams router; here we restrict to students.
 export const attemptsRouter = Router({ mergeParams: true });
+export const attemptsListRouter = Router({ mergeParams: true });
 
 attemptsRouter.use(requireStudent);
+attemptsListRouter.use(requireStudent);
 
 type ExamContext = {
   id: string;
   createdById: string;
   durationMin: number;
   startsAt: Date | null;
+  maxAttempts: number | null;
 };
 
-// Loads the exam (with its time limit) and confirms the student is allowed to
-// read it (i.e. is assigned). Returns null after sending a 404 on failure so
-// existence is never leaked.
+// Loads the exam (with its time limit + attempt policy) and confirms the
+// student is allowed to read it (i.e. is assigned). Returns null after sending a
+// 404 on failure so existence is never leaked.
 async function loadExamContext(
   req: Request,
   res: Response,
@@ -43,6 +47,7 @@ async function loadExamContext(
       createdById: true,
       durationMin: true,
       startsAt: true,
+      maxAttempts: true,
     },
   });
 
@@ -53,17 +58,25 @@ async function loadExamContext(
   return exam;
 }
 
-function findAttempt(examId: string, userId: string) {
-  return prisma.attempt.findUnique({
-    where: { userId_examId: { userId, examId } },
+// The single in-progress (unsubmitted) attempt for a student, if any.
+function findActiveAttempt(examId: string, userId: string) {
+  return prisma.attempt.findFirst({
+    where: { examId, userId, submittedAt: null },
+    orderBy: { startedAt: "desc" },
   });
+}
+
+function countUserAttempts(examId: string, userId: string) {
+  return prisma.attempt.count({ where: { examId, userId } });
 }
 
 function listAnswers(attemptId: string) {
   return prisma.answer.findMany({ where: { attemptId } });
 }
 
-// Start (or resume) the current user's attempt for an exam.
+// Start a new attempt, or resume the active one. Enforces the exam's
+// maxAttempts policy (null = unlimited). In-progress attempts count toward the
+// limit, so starting consumes an attempt.
 attemptsRouter.post("/", async (req: Request, res: Response) => {
   const exam = await loadExamContext(req, res);
   if (!exam) return;
@@ -77,23 +90,25 @@ attemptsRouter.post("/", async (req: Request, res: Response) => {
   }
 
   const userId = req.user!.sub;
-  const existing = await findAttempt(exam.id, userId);
+  const active = await findActiveAttempt(exam.id, userId);
 
-  if (existing) {
-    if (existing.submittedAt) {
-      sendError(res, 409, "Attempt already submitted");
+  if (active) {
+    if (!isAttemptExpired(active.startedAt, exam.durationMin)) {
+      // Resuming an in-progress attempt is idempotent.
+      const answers = await listAnswers(active.id);
+      res.json({ attempt: presentAttempt(active, exam.durationMin, answers) });
       return;
     }
-    if (isAttemptExpired(existing.startedAt, exam.durationMin)) {
-      await finalizeAttempt(existing, {
-        submittedAt: attemptDeadline(existing.startedAt, exam.durationMin),
-      });
-      sendError(res, 409, "Attempt time limit reached");
-      return;
-    }
-    // Resuming an in-progress attempt is idempotent.
-    const answers = await listAnswers(existing.id);
-    res.json({ attempt: presentAttempt(existing, exam.durationMin, answers) });
+    // The active attempt's time ran out while it was open: auto-submit it. It
+    // still counts against the limit below.
+    await finalizeAttempt(active, {
+      submittedAt: attemptDeadline(active.startedAt, exam.durationMin),
+    });
+  }
+
+  const used = await countUserAttempts(exam.id, userId);
+  if (exam.maxAttempts !== null && used >= exam.maxAttempts) {
+    sendError(res, 409, "No attempts remaining");
     return;
   }
 
@@ -105,28 +120,24 @@ attemptsRouter.post("/", async (req: Request, res: Response) => {
       .status(201)
       .json({ attempt: presentAttempt(attempt, exam.durationMin, []) });
   } catch (error) {
-    // Handles the rare race where two starts hit the unique (userId, examId).
     if (handleKnownPrismaError(error, res)) return;
     throw error;
   }
 });
 
-// Read the current attempt state (auto-finalizes if the time limit passed).
+// Read the active attempt state (auto-finalizes if the time limit passed).
 attemptsRouter.get("/", async (req: Request, res: Response) => {
   const exam = await loadExamContext(req, res);
   if (!exam) return;
 
-  const attempt = await findAttempt(exam.id, req.user!.sub);
+  const attempt = await findActiveAttempt(exam.id, req.user!.sub);
   if (!attempt) {
     sendError(res, 404, "Attempt not found");
     return;
   }
 
   let current = attempt;
-  if (
-    !attempt.submittedAt &&
-    isAttemptExpired(attempt.startedAt, exam.durationMin)
-  ) {
+  if (isAttemptExpired(attempt.startedAt, exam.durationMin)) {
     current = await finalizeAttempt(attempt, {
       submittedAt: attemptDeadline(attempt.startedAt, exam.durationMin),
     });
@@ -136,45 +147,7 @@ attemptsRouter.get("/", async (req: Request, res: Response) => {
   res.json({ attempt: presentAttempt(current, exam.durationMin, answers) });
 });
 
-// Retrieve the processed result of a submitted attempt (score breakdown).
-attemptsRouter.get("/result", async (req: Request, res: Response) => {
-  const exam = await loadExamContext(req, res);
-  if (!exam) return;
-
-  const attempt = await findAttempt(exam.id, req.user!.sub);
-  if (!attempt) {
-    sendError(res, 404, "Attempt not found");
-    return;
-  }
-
-  // Results only exist once submitted; finalize first if the limit has passed.
-  let current = attempt;
-  if (
-    !attempt.submittedAt &&
-    isAttemptExpired(attempt.startedAt, exam.durationMin)
-  ) {
-    current = await finalizeAttempt(attempt, {
-      submittedAt: attemptDeadline(attempt.startedAt, exam.durationMin),
-    });
-  }
-  if (!current.submittedAt) {
-    sendError(res, 409, "Attempt not yet submitted");
-    return;
-  }
-
-  const [questions, answers] = await Promise.all([
-    prisma.question.findMany({
-      where: { examId: exam.id },
-      orderBy: { order: "asc" },
-      select: { id: true, points: true, correctAnswer: true },
-    }),
-    listAnswers(current.id),
-  ]);
-
-  res.json({ result: buildAttemptResult(current, questions, answers) });
-});
-
-// Store / update the answer to one question during an attempt.
+// Store / update the answer to one question during the active attempt.
 attemptsRouter.put(
   "/answers/:questionId",
   async (req: Request, res: Response) => {
@@ -184,13 +157,9 @@ attemptsRouter.put(
     const data = parseOr400(answerUpsertSchema, req.body, res);
     if (!data) return;
 
-    const attempt = await findAttempt(exam.id, req.user!.sub);
+    const attempt = await findActiveAttempt(exam.id, req.user!.sub);
     if (!attempt) {
       sendError(res, 404, "Attempt not found");
-      return;
-    }
-    if (attempt.submittedAt) {
-      sendError(res, 409, "Attempt already submitted");
       return;
     }
     // Backend-enforced time limit: reject (and finalize) once expired.
@@ -229,20 +198,25 @@ attemptsRouter.put(
   },
 );
 
-// Submit the attempt (grades it). Idempotent once submitted.
+// Submit the active attempt (grades it) and return it.
 attemptsRouter.post("/submit", async (req: Request, res: Response) => {
   const exam = await loadExamContext(req, res);
   if (!exam) return;
 
-  const attempt = await findAttempt(exam.id, req.user!.sub);
+  const attempt = await findActiveAttempt(exam.id, req.user!.sub);
   if (!attempt) {
+    // No active attempt: re-submitting is idempotent, returning the most recent
+    // finalized attempt if one exists.
+    const last = await prisma.attempt.findFirst({
+      where: { examId: exam.id, userId: req.user!.sub },
+      orderBy: { startedAt: "desc" },
+    });
+    if (last?.submittedAt) {
+      const answers = await listAnswers(last.id);
+      res.json({ attempt: presentAttempt(last, exam.durationMin, answers) });
+      return;
+    }
     sendError(res, 404, "Attempt not found");
-    return;
-  }
-
-  if (attempt.submittedAt) {
-    const answers = await listAnswers(attempt.id);
-    res.json({ attempt: presentAttempt(attempt, exam.durationMin, answers) });
     return;
   }
 
@@ -256,3 +230,86 @@ attemptsRouter.post("/submit", async (req: Request, res: Response) => {
   const answers = await listAnswers(finalized.id);
   res.json({ attempt: presentAttempt(finalized, exam.durationMin, answers) });
 });
+
+// ---------- Attempt history + per-attempt results (/exams/:examId/attempts) ----------
+
+// List the student's attempts for this exam (newest first), with a per-attempt
+// score summary. Used by the exam-taking flow and result navigation.
+attemptsListRouter.get("/", async (req: Request, res: Response) => {
+  const exam = await loadExamContext(req, res);
+  if (!exam) return;
+
+  const [attempts, questions] = await Promise.all([
+    prisma.attempt.findMany({
+      where: { examId: exam.id, userId: req.user!.sub },
+      orderBy: { startedAt: "asc" },
+      select: { id: true, startedAt: true, submittedAt: true, score: true },
+    }),
+    prisma.question.findMany({
+      where: { examId: exam.id },
+      select: { points: true },
+    }),
+  ]);
+
+  const maxScore = questions.reduce((sum, q) => sum + q.points, 0);
+
+  const summaries = attempts.map((a, index) => ({
+    id: a.id,
+    examId: exam.id,
+    attemptNumber: index + 1,
+    startedAt: a.startedAt,
+    submittedAt: a.submittedAt,
+    score: a.submittedAt ? (a.score ?? 0) : null,
+    maxScore,
+    percentage:
+      a.submittedAt && maxScore > 0
+        ? Math.round(((a.score ?? 0) / maxScore) * 10000) / 100
+        : null,
+  }));
+
+  res.json({ attempts: summaries });
+});
+
+// Retrieve the processed result of one owned, submitted attempt.
+attemptsListRouter.get(
+  "/:attemptId/result",
+  async (req: Request, res: Response) => {
+    const exam = await loadExamContext(req, res);
+    if (!exam) return;
+
+    const attemptId = param(req, "attemptId");
+    const attempt = await prisma.attempt.findFirst({
+      where: { id: attemptId, examId: exam.id, userId: req.user!.sub },
+    });
+    if (!attempt) {
+      sendError(res, 404, "Attempt not found");
+      return;
+    }
+
+    // Results only exist once submitted; finalize first if the limit has passed.
+    let current = attempt;
+    if (
+      !attempt.submittedAt &&
+      isAttemptExpired(attempt.startedAt, exam.durationMin)
+    ) {
+      current = await finalizeAttempt(attempt, {
+        submittedAt: attemptDeadline(attempt.startedAt, exam.durationMin),
+      });
+    }
+    if (!current.submittedAt) {
+      sendError(res, 409, "Attempt not yet submitted");
+      return;
+    }
+
+    const [questions, answers] = await Promise.all([
+      prisma.question.findMany({
+        where: { examId: exam.id },
+        orderBy: { order: "asc" },
+        select: { id: true, points: true, correctAnswer: true },
+      }),
+      listAnswers(current.id),
+    ]);
+
+    res.json({ result: buildAttemptResult(current, questions, answers) });
+  },
+);

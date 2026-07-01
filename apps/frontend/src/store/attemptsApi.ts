@@ -1,4 +1,5 @@
 import type { Attempt, AttemptResult } from "../types/attempt";
+import type { AttemptSummary } from "../types/attemptSummary";
 import type { StudentQuestion } from "../types/studentQuestion";
 import { api } from "./api";
 
@@ -24,7 +25,9 @@ export const attemptsApi = api.injectEndpoints({
       transformResponse: (response: { attempt: Attempt }) => response.attempt,
       invalidatesTags: (_result, _error, examId) => [
         { type: "Attempt", id: examId },
+        { type: "Attempt", id: `${examId}-list` },
         { type: "StudentDashboard", id: "LIST" },
+        { type: "StudentDashboard", id: "RESULTS" },
       ],
     }),
 
@@ -66,14 +69,26 @@ export const attemptsApi = api.injectEndpoints({
       transformResponse: (response: { attempt: Attempt }) => response.attempt,
       invalidatesTags: (_result, _error, examId) => [
         { type: "Attempt", id: examId },
+        { type: "Attempt", id: `${examId}-list` },
         { type: "StudentDashboard", id: "LIST" },
+        { type: "StudentDashboard", id: "RESULTS" },
       ],
     }),
 
-    getAttemptResult: builder.query<AttemptResult, string>({
-      query: (examId) => ({ url: `/exams/${examId}/attempt/result` }),
+    getExamAttempts: builder.query<AttemptSummary[], string>({
+      query: (examId) => ({ url: `/exams/${examId}/attempts` }),
+      transformResponse: (response: { attempts: AttemptSummary[] }) => response.attempts,
+      providesTags: (_result, _error, examId) => [{ type: "Attempt", id: `${examId}-list` }],
+    }),
+
+    getAttemptResult: builder.query<AttemptResult, { examId: string; attemptId: string }>({
+      query: ({ examId, attemptId }) => ({
+        url: `/exams/${examId}/attempts/${attemptId}/result`,
+      }),
       transformResponse: (response: { result: AttemptResult }) => response.result,
-      providesTags: (_result, _error, examId) => [{ type: "Attempt", id: `${examId}-result` }],
+      providesTags: (_result, _error, { attemptId }) => [
+        { type: "Attempt", id: `result-${attemptId}` },
+      ],
     }),
   }),
 });
@@ -84,5 +99,6 @@ export const {
   useGetAttemptQuery,
   useSaveAnswerMutation,
   useSubmitAttemptMutation,
+  useGetExamAttemptsQuery,
   useGetAttemptResultQuery,
 } = attemptsApi;

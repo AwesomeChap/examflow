@@ -6,13 +6,11 @@ type StudentExamCardGridProps = {
   /** Filter which exams to show. Defaults to all. */
   filter?: (exam: StudentDashboardExam) => boolean;
   emptyHint?: string;
-  resultsMode?: boolean;
 };
 
 export function StudentExamCardGrid({
   filter,
   emptyHint = "Nothing here yet.",
-  resultsMode = false,
 }: StudentExamCardGridProps) {
   const { data, isLoading, isError } = useGetStudentDashboardQuery();
 
@@ -46,7 +44,7 @@ export function StudentExamCardGrid({
     <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {exams.map((exam) => (
         <li key={exam.id}>
-          <StudentExamCard exam={exam} resultsMode={resultsMode} />
+          <StudentExamCard exam={exam} />
         </li>
       ))}
     </ul>

@@ -1,3 +1,4 @@
+import type { AttemptSummary } from "../types/attemptSummary";
 import type { StudentDashboardExam } from "../types/studentDashboard";
 import { api } from "./api";
 
@@ -8,7 +9,13 @@ export const studentApi = api.injectEndpoints({
       transformResponse: (response: { exams: StudentDashboardExam[] }) => response.exams,
       providesTags: [{ type: "StudentDashboard", id: "LIST" }],
     }),
+
+    getStudentResults: builder.query<AttemptSummary[], void>({
+      query: () => ({ url: "/student/results" }),
+      transformResponse: (response: { results: AttemptSummary[] }) => response.results,
+      providesTags: [{ type: "StudentDashboard", id: "RESULTS" }],
+    }),
   }),
 });
 
-export const { useGetStudentDashboardQuery } = studentApi;
+export const { useGetStudentDashboardQuery, useGetStudentResultsQuery } = studentApi;
