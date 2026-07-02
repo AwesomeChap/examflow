@@ -1,4 +1,4 @@
-import type { Question, QuestionCreateInput } from "@examflow/shared-types";
+import type { Question } from "@examflow/shared-types";
 import type { QuestionBody } from "../store/questionsApi";
 
 /** Maps a stored question into the request body accepted by the API. */
