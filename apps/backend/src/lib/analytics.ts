@@ -1,3 +1,5 @@
+import type { ExamAnalytics, QuestionType } from "@examflow/shared-types";
+
 /**
  * Pure aggregation helpers for per-exam teacher analytics. Kept free of Prisma
  * so the math (averages, distribution buckets, per-question rates) is trivially
@@ -22,7 +24,7 @@ type AnalyticsQuestion = {
   id: string;
   order: number;
   text: string;
-  type: "mcq" | "true_false";
+  type: QuestionType;
   points: number;
 };
 
@@ -76,7 +78,7 @@ export function buildExamAnalytics(
     total: scoringAttempts.length,
     inProgress: 0,
   },
-) {
+): ExamAnalytics {
   const maxScore = questions.reduce((sum, q) => sum + q.points, 0);
 
   // Every scoring attempt is a student's best *submitted* attempt.

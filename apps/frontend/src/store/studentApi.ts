@@ -1,4 +1,4 @@
-import type { AttemptSummary, StudentDashboardExam } from "@examflow/shared-types";
+import type { StudentDashboardExam, StudentResult } from "@examflow/shared-types";
 import { api } from "./api";
 
 export const studentApi = api.injectEndpoints({
@@ -9,9 +9,9 @@ export const studentApi = api.injectEndpoints({
       providesTags: [{ type: "StudentDashboard", id: "LIST" }],
     }),
 
-    getStudentResults: builder.query<AttemptSummary[], void>({
+    getStudentResults: builder.query<StudentResult[], void>({
       query: () => ({ url: "/student/results" }),
-      transformResponse: (response: { results: AttemptSummary[] }) => response.results,
+      transformResponse: (response: { results: StudentResult[] }) => response.results,
       providesTags: [{ type: "StudentDashboard", id: "RESULTS" }],
     }),
   }),

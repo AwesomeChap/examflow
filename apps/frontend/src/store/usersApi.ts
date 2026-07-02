@@ -1,4 +1,4 @@
-import type { AdminUser, Paginated, UserRole } from "@examflow/shared-types";
+import type { AdminUser, Paginated, UserCreateInput, UserRole } from "@examflow/shared-types";
 import { api } from "./api";
 
 export type UserListParams = {
@@ -15,11 +15,7 @@ type UserListResponse = {
   pageSize: number;
 };
 
-export type CreateUserBody = {
-  name: string;
-  role: "teacher" | "student";
-  password: string;
-};
+export type { UserCreateInput as CreateUserBody };
 
 export const usersApi = api.injectEndpoints({
   endpoints: (builder) => ({
@@ -43,7 +39,7 @@ export const usersApi = api.injectEndpoints({
           : [{ type: "User" as const, id: "LIST" }],
     }),
 
-    createUser: builder.mutation<AdminUser, CreateUserBody>({
+    createUser: builder.mutation<AdminUser, UserCreateInput>({
       query: (body) => ({ url: "/admin/users", method: "POST", body }),
       transformResponse: (response: { user: AdminUser }) => response.user,
       invalidatesTags: [{ type: "User", id: "LIST" }, "AdminDashboard"],

@@ -1,4 +1,5 @@
-import type { Exam, ExamDetail, ExamListItem, ExamStatus, Paginated } from "@examflow/shared-types";
+import type { Exam, ExamDetail, ExamListItem, Paginated } from "@examflow/shared-types";
+import type { ExamCreateInput, ExamUpdateInput } from "@examflow/shared-types";
 import { api } from "./api";
 
 export type ExamListParams = {
@@ -13,18 +14,7 @@ type ExamListResponse = {
   pageSize: number;
 };
 
-export type CreateExamBody = {
-  title: string;
-  description?: string | null;
-  durationMin?: number;
-  status?: ExamStatus;
-  /** ISO string, or null for "available immediately". */
-  startsAt?: string | null;
-  /** Allowed attempts per student; null means unlimited. */
-  maxAttempts?: number | null;
-};
-
-export type UpdateExamBody = Partial<CreateExamBody>;
+export type { ExamCreateInput as CreateExamBody, ExamUpdateInput as UpdateExamBody };
 
 export const examsApi = api.injectEndpoints({
   endpoints: (builder) => ({
@@ -54,13 +44,13 @@ export const examsApi = api.injectEndpoints({
       providesTags: (_result, _error, examId) => [{ type: "Exam", id: examId }],
     }),
 
-    createExam: builder.mutation<Exam, CreateExamBody>({
+    createExam: builder.mutation<Exam, ExamCreateInput>({
       query: (body) => ({ url: "/exams", method: "POST", body }),
       transformResponse: (response: { exam: Exam }) => response.exam,
       invalidatesTags: [{ type: "Exam", id: "LIST" }, "AdminDashboard"],
     }),
 
-    updateExam: builder.mutation<Exam, { id: string; body: UpdateExamBody }>({
+    updateExam: builder.mutation<Exam, { id: string; body: ExamUpdateInput }>({
       query: ({ id, body }) => ({ url: `/exams/${id}`, method: "PUT", body }),
       transformResponse: (response: { exam: Exam }) => response.exam,
       invalidatesTags: (_result, _error, { id }) => [

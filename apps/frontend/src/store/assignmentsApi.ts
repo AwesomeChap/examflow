@@ -1,16 +1,11 @@
-import type { Student } from "@examflow/shared-types";
+import type { ExamAssignment } from "@examflow/shared-types";
 import { api } from "./api";
-
-type AssignmentResponse = {
-  students: { assignedAt: string; student: Student }[];
-};
 
 export const assignmentsApi = api.injectEndpoints({
   endpoints: (builder) => ({
-    // Returns the list of assigned student ids for an exam.
     getExamStudents: builder.query<string[], string>({
       query: (examId) => ({ url: `/exams/${examId}/students` }),
-      transformResponse: (response: AssignmentResponse) =>
+      transformResponse: (response: { students: ExamAssignment[] }) =>
         response.students.map((a) => a.student.id),
       providesTags: (_result, _error, examId) => [{ type: "Assignment", id: examId }],
     }),

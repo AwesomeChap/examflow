@@ -1,19 +1,10 @@
 import type {
   Attempt,
+  AttemptHistoryItem,
   AttemptResult,
-  AttemptSummary,
-  StudentQuestion,
+  StudentExamDetail,
 } from "@examflow/shared-types";
 import { api } from "./api";
-
-export type StudentExamDetail = {
-  id: string;
-  title: string;
-  description: string | null;
-  durationMin: number;
-  startsAt: string | null;
-  questions: StudentQuestion[];
-};
 
 export const attemptsApi = api.injectEndpoints({
   endpoints: (builder) => ({
@@ -78,9 +69,9 @@ export const attemptsApi = api.injectEndpoints({
       ],
     }),
 
-    getExamAttempts: builder.query<AttemptSummary[], string>({
+    getExamAttempts: builder.query<AttemptHistoryItem[], string>({
       query: (examId) => ({ url: `/exams/${examId}/attempts` }),
-      transformResponse: (response: { attempts: AttemptSummary[] }) => response.attempts,
+      transformResponse: (response: { attempts: AttemptHistoryItem[] }) => response.attempts,
       providesTags: (_result, _error, examId) => [{ type: "Attempt", id: `${examId}-list` }],
     }),
 

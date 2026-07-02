@@ -1,4 +1,5 @@
-import { Prisma, type UserRole } from "../generated/prisma/client.js";
+import type { UserRole } from "@examflow/shared-types";
+import { Prisma } from "../generated/prisma/client.js";
 import { prisma } from "./prisma.js";
 import { userPublicSelect } from "./userSelect.js";
 

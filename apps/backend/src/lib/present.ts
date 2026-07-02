@@ -1,4 +1,4 @@
-import type { UserRole } from "../generated/prisma/client.js";
+import type { UserRole } from "@examflow/shared-types";
 
 // Reusable "safe" projection of a user for embedding in responses.
 export const publicUserSelect = {

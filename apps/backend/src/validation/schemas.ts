@@ -1,5 +1,17 @@
 import { z } from "zod";
 
+export type {
+  AnswerUpsertInput,
+  AssignStudentsInput,
+  ExamCreateInput,
+  ExamUpdateInput,
+  LoginInput,
+  QuestionCreateInput,
+  QuestionPatchInput,
+  QuestionReorderInput,
+  UserCreateInput,
+} from "@examflow/shared-types";
+
 // ---------- Auth ----------
 
 // Accepts `identifier` (email or matriculation number); `email` is kept as a
@@ -14,8 +26,6 @@ export const loginSchema = z
     message: "identifier (email or matriculation number) is required",
     path: ["identifier"],
   });
-
-export type LoginInput = z.infer<typeof loginSchema>;
 
 // ---------- Exam ----------
 
@@ -59,9 +69,6 @@ export const examUpdateSchema = z
     message: "At least one field is required",
   });
 
-export type ExamCreateInput = z.infer<typeof examCreateSchema>;
-export type ExamUpdateInput = z.infer<typeof examUpdateSchema>;
-
 // ---------- Pagination ----------
 
 // Offset-based pagination shared by list endpoints. Query values arrive as
@@ -89,7 +96,6 @@ export const userListQuerySchema = paginationSchema.extend({
   role: userRoleSchema.optional(),
 });
 
-export type UserCreateInput = z.infer<typeof userCreateSchema>;
 export type UserListQueryInput = z.infer<typeof userListQuerySchema>;
 
 // ---------- Question ----------
@@ -136,23 +142,16 @@ export const questionPatchSchema = z
     message: "At least one field is required",
   });
 
-export type QuestionCreateInput = z.infer<typeof questionCreateSchema>;
-export type QuestionPatchInput = z.infer<typeof questionPatchSchema>;
-
 // Reorder: the full set of question ids for an exam, in the desired order.
 export const questionReorderSchema = z.object({
   orderedIds: z.array(z.string().trim().min(1)).min(1).max(1000),
 });
-
-export type QuestionReorderInput = z.infer<typeof questionReorderSchema>;
 
 // ---------- Exam assignments ----------
 
 export const assignStudentsSchema = z.object({
   studentIds: z.array(z.string().trim().min(1)).min(1).max(500),
 });
-
-export type AssignStudentsInput = z.infer<typeof assignStudentsSchema>;
 
 // ---------- Attempts ----------
 
@@ -162,5 +161,3 @@ export type AssignStudentsInput = z.infer<typeof assignStudentsSchema>;
 export const answerUpsertSchema = z.object({
   value: z.string().trim().min(1).max(500),
 });
-
-export type AnswerUpsertInput = z.infer<typeof answerUpsertSchema>;

@@ -5,7 +5,7 @@ import { param } from "../lib/params.js";
 import { prisma } from "../lib/prisma.js";
 
 /**
- * Loads the exam referenced by `:examId` into `req.exam` (id + owner only).
+ * Loads the exam referenced by `:examId` into `req.exam` (id, owner, status).
  * Responds 404 if it doesn't exist. Use on any exam-scoped route.
  */
 export async function loadExam(req: Request, res: Response, next: NextFunction): Promise<void> {

@@ -1,9 +1,5 @@
+import type { AdminDashboard } from "@examflow/shared-types";
 import { api } from "./api";
-
-export type AdminDashboard = {
-  users: { admins: number; teachers: number; students: number };
-  exams: number;
-};
 
 export const adminApi = api.injectEndpoints({
   endpoints: (builder) => ({

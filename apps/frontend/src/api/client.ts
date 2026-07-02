@@ -1,4 +1,4 @@
-import type { User } from "@examflow/shared-types";
+import type { LoginInput, User } from "@examflow/shared-types";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -42,10 +42,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (text ? JSON.parse(text) : undefined) as T;
 }
 
-export type LoginPayload = {
-  identifier: string;
-  password: string;
-};
+/** Client login payload (identifier required; backend also accepts legacy `email`). */
+export type LoginPayload = Required<Pick<LoginInput, "identifier" | "password">>;
 
 export function login(payload: LoginPayload): Promise<{ user: User }> {
   return request<{ user: User }>("/auth/login", {

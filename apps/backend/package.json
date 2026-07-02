@@ -21,6 +21,7 @@
     "db:studio": "prisma studio --port 5555 --browser none"
   },
   "dependencies": {
+    "@examflow/shared-types": "*",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "bcryptjs": "^3.0.3",

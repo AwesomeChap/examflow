@@ -1,6 +1,6 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
-import type { ExamStatus } from "../generated/prisma/client.js";
+import type { ExamStatus, AttemptHistoryItem } from "@examflow/shared-types";
 import {
   attemptDeadline,
   buildAttemptResult,
@@ -267,12 +267,12 @@ attemptsListRouter.get("/", async (req: Request, res: Response) => {
 
   const maxScore = questions.reduce((sum, q) => sum + q.points, 0);
 
-  const summaries = attempts.map((a, index) => ({
+  const summaries: AttemptHistoryItem[] = attempts.map((a, index) => ({
     id: a.id,
     examId: exam.id,
     attemptNumber: index + 1,
-    startedAt: a.startedAt,
-    submittedAt: a.submittedAt,
+    startedAt: a.startedAt.toISOString(),
+    submittedAt: a.submittedAt?.toISOString() ?? null,
     score: a.submittedAt ? (a.score ?? 0) : null,
     maxScore,
     percentage:

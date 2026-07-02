@@ -1,3 +1,4 @@
+import type { StudentAttemptStatus } from "@examflow/shared-types";
 import { Router } from "express";
 import type { Request, Response } from "express";
 import { prisma } from "../lib/prisma.js";
@@ -7,8 +8,6 @@ export const studentRouter = Router();
 
 // Student area: only students reach these routes (staff get 403).
 studentRouter.use(requireAuth, requireStudent);
-
-type AttemptStatus = "not_started" | "in_progress" | "submitted";
 
 type StudentAttempt = {
   id: string;
@@ -72,7 +71,7 @@ studentRouter.get("/dashboard", async (req: Request, res: Response) => {
     const hasActive = examAttempts.some((a) => a.submittedAt === null);
     const best = bestSubmitted(examAttempts);
 
-    const status: AttemptStatus = hasActive ? "in_progress" : best ? "submitted" : "not_started";
+    const status: StudentAttemptStatus = hasActive ? "in_progress" : best ? "submitted" : "not_started";
 
     const isOpen = !exam.startsAt || now >= exam.startsAt.getTime();
     const attemptsUsed = examAttempts.length;

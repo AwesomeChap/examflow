@@ -1,4 +1,4 @@
-import type { ExamStatus } from "../generated/prisma/client.js";
+import type { ExamStatus } from "@examflow/shared-types";
 import type { AuthTokenPayload } from "./auth.js";
 import { prisma } from "./prisma.js";
 

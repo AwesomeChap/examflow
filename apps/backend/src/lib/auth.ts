@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import type { SignOptions } from "jsonwebtoken";
-import type { UserRole } from "../generated/prisma/client.js";
+import type { UserRole } from "@examflow/shared-types";
 import { env } from "./env.js";
 
 const SALT_ROUNDS = 12;

@@ -37,8 +37,8 @@ export type AttemptResult = {
   breakdown: ResultBreakdownItem[];
 };
 
-/** A single submitted attempt as shown in the Results tab / attempt history. */
-export type AttemptSummary = {
+/** A submitted attempt row on the Results tab (GET /student/results). */
+export type StudentResult = {
   id: string;
   examId: string;
   title: string;
@@ -48,3 +48,18 @@ export type AttemptSummary = {
   percentage: number;
   submittedAt: string | null;
 };
+
+/** Per-exam attempt list item (GET /exams/:examId/attempts). */
+export type AttemptHistoryItem = {
+  id: string;
+  examId: string;
+  attemptNumber: number;
+  startedAt: string;
+  submittedAt: string | null;
+  score: number | null;
+  maxScore: number;
+  percentage: number | null;
+};
+
+/** @deprecated Use `StudentResult` for the results tab or `AttemptHistoryItem` for per-exam history. */
+export type AttemptSummary = StudentResult;

@@ -1,3 +1,4 @@
+import type { QuestionType, Attempt, AttemptResult } from "@examflow/shared-types";
 import { prisma } from "./prisma.js";
 
 /**
@@ -138,21 +139,22 @@ export function presentAttempt(
   attempt: PresentableAttempt,
   durationMin: number,
   answers: PresentableAnswer[],
-) {
+): Attempt {
   const submitted = attempt.submittedAt !== null;
+  const deadline = attemptDeadline(attempt.startedAt, durationMin);
 
   return {
     id: attempt.id,
     examId: attempt.examId,
-    startedAt: attempt.startedAt,
-    deadline: attemptDeadline(attempt.startedAt, durationMin),
-    submittedAt: attempt.submittedAt,
+    startedAt: attempt.startedAt.toISOString(),
+    deadline: deadline.toISOString(),
+    submittedAt: attempt.submittedAt?.toISOString() ?? null,
     score: submitted ? attempt.score : null,
     remainingMs: submitted ? 0 : remainingMs(attempt.startedAt, durationMin),
     answers: answers.map((a) => ({
       questionId: a.questionId,
       value: a.value,
-      ...(submitted ? { isCorrect: a.isCorrect } : {}),
+      ...(submitted && a.isCorrect != null ? { isCorrect: a.isCorrect } : {}),
     })),
   };
 }
@@ -180,7 +182,7 @@ export function buildAttemptResult(
   attempt: ResultAttempt,
   questions: ResultQuestion[],
   answers: PresentableAnswer[],
-) {
+): AttemptResult {
   const answerByQuestion = new Map(answers.map((a) => [a.questionId, a]));
 
   const maxScore = questions.reduce((sum, q) => sum + q.points, 0);
@@ -207,7 +209,7 @@ export function buildAttemptResult(
   return {
     attemptId: attempt.id,
     examId: attempt.examId,
-    submittedAt: attempt.submittedAt,
+    submittedAt: attempt.submittedAt?.toISOString() ?? null,
     score,
     maxScore,
     percentage,
@@ -223,7 +225,7 @@ export function buildAttemptResult(
  *  - mcq: must be one of the stored options
  */
 export function isValidAnswerValue(
-  question: { type: "mcq" | "true_false"; options: unknown },
+  question: { type: QuestionType; options: unknown },
   value: string,
 ): boolean {
   if (question.type === "true_false") {

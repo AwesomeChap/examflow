@@ -1,4 +1,4 @@
-import type { AttemptSummary } from "@examflow/shared-types";
+import type { StudentResult } from "@examflow/shared-types";
 import { Badge } from "../ui/Badge";
 import { ButtonLink } from "../ui/ButtonLink";
 import { Card } from "../ui/Card";
@@ -14,7 +14,7 @@ function formatSubmittedAt(iso: string): string {
 }
 
 type StudentAttemptCardProps = {
-  attempt: AttemptSummary;
+  attempt: StudentResult;
 };
 
 export function StudentAttemptCard({ attempt }: StudentAttemptCardProps) {

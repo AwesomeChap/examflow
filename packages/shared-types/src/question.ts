@@ -13,7 +13,7 @@ export type Question = {
   points: number;
 };
 
-/** Payload shared by question create/update forms. */
+/** Payload shared by question create/update forms (no `order`; set on create via API). */
 export type QuestionDraft = {
   type: QuestionType;
   text: string;
@@ -21,6 +21,37 @@ export type QuestionDraft = {
   options: string[];
   correctAnswer: string;
   points: number;
+};
+
+export type QuestionCreateInput =
+  | {
+      type: "mcq";
+      text: string;
+      options: string[];
+      correctAnswer: string;
+      order?: number;
+      points?: number;
+    }
+  | {
+      type: "true_false";
+      text: string;
+      correctAnswer: "true" | "false";
+      options?: null;
+      order?: number;
+      points?: number;
+    };
+
+export type QuestionPatchInput = {
+  type?: QuestionType;
+  text?: string;
+  options?: string[] | null;
+  correctAnswer?: string;
+  order?: number;
+  points?: number;
+};
+
+export type QuestionReorderInput = {
+  orderedIds: string[];
 };
 
 /** Question as returned to students (never includes the correct answer). */
