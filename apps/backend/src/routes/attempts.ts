@@ -1,5 +1,6 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
+import type { ExamStatus } from "../generated/prisma/client.js";
 import {
   attemptDeadline,
   buildAttemptResult,
@@ -28,20 +29,22 @@ attemptsListRouter.use(requireStudent);
 type ExamContext = {
   id: string;
   createdById: string;
+  status: ExamStatus;
   durationMin: number;
   startsAt: Date | null;
   maxAttempts: number | null;
 };
 
 // Loads the exam (with its time limit + attempt policy) and confirms the
-// student is allowed to read it (i.e. is assigned). Returns null after sending a
-// 404 on failure so existence is never leaked.
+// student is allowed to read it (i.e. is assigned to a published exam). Returns
+// null after sending a 404 on failure so existence is never leaked.
 async function loadExamContext(req: Request, res: Response): Promise<ExamContext | null> {
   const exam = await prisma.exam.findUnique({
     where: { id: param(req, "examId") },
     select: {
       id: true,
       createdById: true,
+      status: true,
       durationMin: true,
       startsAt: true,
       maxAttempts: true,

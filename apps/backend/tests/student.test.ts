@@ -53,6 +53,7 @@ describe("student dashboard + start-time gating", () => {
         title: `Sched Exam ${randomUUID().slice(0, 8)}`,
         createdById: teacherId,
         durationMin: 60,
+        status: "published",
         startsAt,
       },
     });

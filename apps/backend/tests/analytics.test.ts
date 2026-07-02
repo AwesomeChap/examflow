@@ -87,6 +87,7 @@ describe("per-exam analytics", () => {
         title: `Analytics Exam ${tag}`,
         createdById: owner.id,
         durationMin: 60,
+        status: "published",
       },
     });
     examId = exam.id;
@@ -257,6 +258,7 @@ describe("per-exam analytics", () => {
           createdById: owner,
           durationMin: 60,
           maxAttempts: null, // unlimited
+          status: "published",
         },
       });
       const q = await prisma.question.create({

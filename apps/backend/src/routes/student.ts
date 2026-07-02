@@ -40,7 +40,7 @@ studentRouter.get("/dashboard", async (req: Request, res: Response) => {
 
   const [exams, attempts] = await Promise.all([
     prisma.exam.findMany({
-      where: { assignments: { some: { studentId } } },
+      where: { assignments: { some: { studentId } }, status: "published" },
       orderBy: [{ startsAt: "asc" }, { createdAt: "desc" }],
       select: {
         id: true,
@@ -106,7 +106,7 @@ studentRouter.get("/results", async (req: Request, res: Response) => {
   const studentId = req.user!.sub;
 
   const attempts = await prisma.attempt.findMany({
-    where: { userId: studentId, submittedAt: { not: null } },
+    where: { userId: studentId, submittedAt: { not: null }, exam: { status: "published" } },
     orderBy: { submittedAt: "desc" },
     select: {
       id: true,

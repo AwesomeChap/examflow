@@ -64,6 +64,7 @@ describe("exam attempt flow", () => {
         title: `Attempt Exam ${randomUUID().slice(0, 8)}`,
         createdById: teacherId,
         durationMin,
+        status: "published",
       },
     });
     const mcq = await prisma.question.create({
@@ -444,6 +445,7 @@ describe("exam attempt flow", () => {
           createdById: teacherId,
           durationMin: 60,
           maxAttempts,
+          status: "published",
         },
       });
       const mcq = await prisma.question.create({

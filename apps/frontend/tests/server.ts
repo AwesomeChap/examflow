@@ -271,10 +271,13 @@ export function seedStudentExam(
   exam: ExamListItem,
   questions: Question[] = [],
   studentId: string = TEST_USERS.student.id,
+  opts?: { published?: boolean },
 ) {
-  examFixtures = [exam, ...examFixtures.filter((e) => e.id !== exam.id)];
-  seedQuestions(exam.id, questions);
-  seedAssignments(exam.id, [studentId]);
+  const normalized =
+    opts?.published === false ? exam : { ...exam, status: "published" as const };
+  examFixtures = [normalized, ...examFixtures.filter((e) => e.id !== normalized.id)];
+  seedQuestions(normalized.id, questions);
+  seedAssignments(normalized.id, [studentId]);
 }
 
 /** Override how long new attempts stay open in MSW (for timer/autosubmit tests). */
@@ -323,9 +326,7 @@ function buildStudentDashboard(): StudentDashboardExam[] {
   if (!activeSession || activeSession.role !== "student") return [];
   const studentId = activeSession.id;
   const now = Date.now();
-  return examFixtures
-    .filter((exam) => assignmentsByExam.get(exam.id)?.has(studentId))
-    .map((exam) => {
+  return studentReadableExams(studentId).map((exam) => {
       const list = getAttempts(studentId, exam.id);
       const hasActive = activeAttempt(list) !== undefined;
       const best = bestAttempt(list);
@@ -368,7 +369,7 @@ function buildStudentResults() {
     percentage: number;
     submittedAt: string | null;
   }> = [];
-  for (const exam of examFixtures) {
+  for (const exam of studentReadableExams(studentId)) {
     const list = getAttempts(studentId, exam.id);
     const questions = questionsByExam.get(exam.id) ?? [];
     const maxScore = questions.reduce((s, q) => s + q.points, 0);
@@ -442,6 +443,13 @@ export function makeExam(overrides: Partial<ExamListItem> & { id: string }): Exa
   };
 }
 
+function studentReadableExams(studentId: string): ExamListItem[] {
+  return examFixtures.filter(
+    (exam) =>
+      assignmentsByExam.get(exam.id)?.has(studentId) && exam.status === "published",
+  );
+}
+
 /** Mirrors the backend's role-scoped exam visibility. */
 function visibleExams(): ExamListItem[] {
   if (!activeSession) return [];
@@ -450,7 +458,7 @@ function visibleExams(): ExamListItem[] {
     return examFixtures.filter((exam) => exam.createdById === activeSession!.id);
   }
   if (activeSession.role === "student") {
-    return examFixtures.filter((exam) => assignmentsByExam.get(exam.id)?.has(activeSession!.id));
+    return studentReadableExams(activeSession.id);
   }
   return [];
 }

@@ -11,7 +11,7 @@ import { prisma } from "../lib/prisma.js";
 export async function loadExam(req: Request, res: Response, next: NextFunction): Promise<void> {
   const exam = await prisma.exam.findUnique({
     where: { id: param(req, "examId") },
-    select: { id: true, createdById: true },
+    select: { id: true, createdById: true, status: true },
   });
 
   if (!exam) {

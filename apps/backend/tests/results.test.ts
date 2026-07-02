@@ -60,6 +60,7 @@ describe("exam result processing", () => {
         title: `Result Exam ${randomUUID().slice(0, 8)}`,
         createdById: teacherId,
         durationMin,
+        status: "published",
       },
     });
     const mcq = await prisma.question.create({

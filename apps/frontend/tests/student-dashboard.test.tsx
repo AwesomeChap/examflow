@@ -37,6 +37,25 @@ describe("student dashboard", () => {
     expect(screen.getByRole("link", { name: /start exam/i })).toBeInTheDocument();
   });
 
+  it("hides assigned draft exams from the dashboard", async () => {
+    seedSession(toPublic("student"));
+    seedStudentExam(
+      makeExam({
+        id: "se-draft",
+        title: "Hidden Draft Exam",
+        status: "draft",
+        createdById: TEST_USERS.teacher.id,
+      }),
+      [mcq("q-draft")],
+      undefined,
+      { published: false },
+    );
+    renderApp("/dashboard");
+
+    await screen.findByText("student dashboard");
+    expect(screen.queryByText("Hidden Draft Exam")).not.toBeInTheDocument();
+  });
+
   it("disables exams that have not opened yet", async () => {
     seedSession(toPublic("student"));
     const future = new Date(Date.now() + 86_400_000).toISOString();

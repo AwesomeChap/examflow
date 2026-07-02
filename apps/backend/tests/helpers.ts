@@ -101,7 +101,7 @@ export async function createWorld() {
   ]);
 
   const examA = await prisma.exam.create({
-    data: { title: `Exam A ${tag}`, createdById: teacherA.id },
+    data: { title: `Exam A ${tag}`, createdById: teacherA.id, status: "published" },
   });
   const examB = await prisma.exam.create({
     data: { title: `Exam B ${tag}`, createdById: teacherB.id },

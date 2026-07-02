@@ -290,10 +290,13 @@ export const openApiDocument = {
     "/student/dashboard": {
       get: {
         tags: ["Student"],
-        summary: "Assigned exams with attempt state",
+        summary: "Assigned published exams with attempt state",
+        description:
+          "Returns only published exams assigned to the student. Draft exams are hidden until " +
+          "a teacher publishes them.",
         responses: {
           200: {
-            description: "The student's assigned exams.",
+            description: "The student's assigned, published exams.",
             content: {
               "application/json": {
                 schema: {
@@ -316,7 +319,9 @@ export const openApiDocument = {
     "/student/results": {
       get: {
         tags: ["Student"],
-        summary: "All submitted attempts across exams (newest first)",
+        summary: "All submitted attempts across published exams (newest first)",
+        description:
+          "Only includes results for published exams. Attempts on draft exams are omitted.",
         responses: {
           200: {
             description: "Flat list of submitted attempts.",
@@ -373,7 +378,7 @@ export const openApiDocument = {
         tags: ["Exams"],
         summary: "List exams visible to the caller (paginated)",
         description:
-          "Admins see all exams; teachers see only their own; students see only exams " +
+          "Admins see all exams; teachers see only their own; students see only published exams " +
           "assigned to them.",
         parameters: [...pageParams],
         responses: {
@@ -399,8 +404,9 @@ export const openApiDocument = {
         tags: ["Exams"],
         summary: "Get one exam with its questions",
         description:
-          "Correct answers are stripped from questions for students. Returns 404 for both " +
-          "missing and unauthorized exams (existence is never leaked).",
+          "Correct answers are stripped from questions for students. Students may only read " +
+          "published exams they are assigned to. Returns 404 for both missing and unauthorized " +
+          "exams (existence is never leaked).",
         parameters: [examIdParam],
         responses: {
           200: jsonResponse("Exam detail.", "#/components/schemas/ExamDetailResponse"),
